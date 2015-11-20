@@ -28,6 +28,7 @@ import org.roboswag.core.utils.ShouldNotHappenException;
 import org.roboswag.core.utils.ThreadLocalValue;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Locale;
 
 public final class LcHelper {
@@ -35,9 +36,20 @@ public final class LcHelper {
     private static int logLevel;
     private static boolean crashOnFatalExceptions = true;
     private static LogProcessor logProcessor;
+    private static int stackTraceCodeShift;
 
     private static final ThreadLocalValue<SimpleDateFormat> DATE_TIME_FORMATTER
             = new ThreadLocalValue<>(() -> new SimpleDateFormat("HH:mm:ss.SSS", new Locale("ru")));
+
+    static {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (int i = 0; i < stackTrace.length; i++) {
+            if (stackTrace[i].getClassName().equals(LcHelper.class.getName())) {
+                stackTraceCodeShift = i + 1;
+                break;
+            }
+        }
+    }
 
     /* Returns if library should crash on fatal exceptions (default - true, set false for production) */
     public static boolean isCrashOnFatalExceptions() {
@@ -73,7 +85,7 @@ public final class LcHelper {
         }
 
         if (priority >= logLevel) {
-            final StackTraceElement trace = Thread.currentThread().getStackTrace()[5 + stackTraceAdditionalDepth];
+            final StackTraceElement trace = Thread.currentThread().getStackTrace()[stackTraceCodeShift + 2 + stackTraceAdditionalDepth];
             final String tag = trace.getFileName() + ":" + trace.getLineNumber();
 
             final String formattedMessage;
@@ -100,10 +112,18 @@ public final class LcHelper {
         logMessage(priority, message, ex, 0, args);
     }
 
+    @NonNull
+    public static String getCodePoint(@Nullable Object caller) {
+        final StackTraceElement trace = Thread.currentThread().getStackTrace()[stackTraceCodeShift];
+        return (caller != null ? caller.getClass().getName() + '(' + caller.hashCode() + ") at " : "")
+                + trace.getFileName() + ':' + trace.getMethodName() + ':' + trace.getLineNumber();
+    }
+
     /* Prints stack trace in log with DEBUG level */
     public static void printStackTrace(final String tag) {
         if (logLevel <= Log.DEBUG) {
-            Log.d(tag, TextUtils.join("\n", Thread.currentThread().getStackTrace()));
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, stackTraceCodeShift, stackTrace.length)));
         }
     }
 
