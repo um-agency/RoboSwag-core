@@ -129,14 +129,13 @@ public final class LcHelper {
 
     /* Error level log with exception */
     public static void fatalException(@NonNull final Throwable ex) {
+        logMessage(Log.ASSERT, "Fatal exception", ex);
         if (crashOnFatalExceptions) {
             if (ex instanceof ShouldNotHappenException) {
                 throw (ShouldNotHappenException) ex;
             } else {
                 throw new ShouldNotHappenException(ex);
             }
-        } else {
-            logMessage(Log.ASSERT, "Fatal exception", ex);
         }
     }
 
