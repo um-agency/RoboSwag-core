@@ -4,11 +4,13 @@ import android.support.annotation.NonNull;
 
 import java.security.MessageDigest;
 
+import rx.functions.Func1;
+
 /**
  * Created by Gavriil Sitnikov on 13/11/2015.
  * TODO: fill description
  */
-public class StringUtils {
+public final class StringUtils {
 
     /* Returns MD5 hash of string */
     @NonNull
@@ -26,6 +28,30 @@ public class StringUtils {
         } catch (final Exception e) {
             throw new ShouldNotHappenException(e);
         }
+    }
+
+    private static boolean containsCharLike(@NonNull final String string, @NonNull final Func1<Character, Boolean> condition) {
+        for (int i = 0; i < string.length(); i++) {
+            if (condition.call(string.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean containsNumbers(@NonNull final String string) {
+        return containsCharLike(string, Character::isDigit);
+    }
+
+    public static boolean containsLowerCase(@NonNull final String string) {
+        return containsCharLike(string, Character::isLowerCase);
+    }
+
+    public static boolean containsUpperCase(@NonNull final String string) {
+        return containsCharLike(string, Character::isUpperCase);
+    }
+
+    private StringUtils() {
     }
 
 }
