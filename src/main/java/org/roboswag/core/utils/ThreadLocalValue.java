@@ -26,9 +26,10 @@ import rx.functions.Func0;
 public class ThreadLocalValue<T> extends ThreadLocal<T> {
 
     @NonNull
-    private Func0<T> creator;
+    private final Func0<T> creator;
 
-    public ThreadLocalValue(@NonNull Func0<T> creator) {
+    public ThreadLocalValue(@NonNull final Func0<T> creator) {
+        super();
         this.creator = creator;
     }
 

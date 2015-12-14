@@ -22,6 +22,8 @@ package org.roboswag.core.log;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import org.roboswag.core.utils.ShouldNotHappenException;
+
 /**
  * Created by Gavriil Sitnikov on 13/11/2015.
  * TODO: fill description
@@ -78,8 +80,13 @@ public final class Lc {
     }
 
     /* Error level log with exception */
-    public static void fatalException(@NonNull final Throwable ex) {
-        LcHelper.fatalException(ex);
+    public static void asserted(@NonNull final String message) {
+        LcHelper.assertion(new ShouldNotHappenException(message));
+    }
+
+    /* Error level log with exception */
+    public static void asserted(@NonNull final Throwable ex) {
+        LcHelper.assertion(ex);
     }
 
     private Lc() {

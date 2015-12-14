@@ -34,7 +34,7 @@ import java.util.Locale;
 public final class LcHelper {
 
     private static int logLevel;
-    private static boolean crashOnFatalExceptions = true;
+    private static boolean crashOnAssertions = true;
     private static LogProcessor logProcessor;
     private static int stackTraceCodeShift;
 
@@ -42,7 +42,7 @@ public final class LcHelper {
             = new ThreadLocalValue<>(() -> new SimpleDateFormat("HH:mm:ss.SSS", new Locale("ru")));
 
     static {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (int i = 0; i < stackTrace.length; i++) {
             if (stackTrace[i].getClassName().equals(LcHelper.class.getName())) {
                 stackTraceCodeShift = i + 1;
@@ -52,13 +52,13 @@ public final class LcHelper {
     }
 
     /* Returns if library should crash on fatal exceptions (default - true, set false for production) */
-    public static boolean isCrashOnFatalExceptions() {
-        return crashOnFatalExceptions;
+    public static boolean isCrashOnAssertions() {
+        return crashOnAssertions;
     }
 
     /* Sets if library should crash on fatal exceptions (default - true, set false for production) */
-    public static void setCrashOnFatalExceptions(final boolean crashOnFatalExceptions) {
-        LcHelper.crashOnFatalExceptions = crashOnFatalExceptions;
+    public static void setCrashOnAssertions(final boolean crashOnAssertions) {
+        LcHelper.crashOnAssertions = crashOnAssertions;
     }
 
     /* Returns logging level */
@@ -78,21 +78,20 @@ public final class LcHelper {
         Lc.d("Configuring Logging, minimum log level is %s", logLevelToString(logLevel));
     }
 
+    @SuppressWarnings("PMD.AvoidCatchingThrowable")
     private static void logMessage(final int priority, @NonNull final String message, @Nullable final Throwable ex,
-                                   final int stackTraceAdditionalDepth, Object... args) {
+                                   final int stackTraceAdditionalDepth, final Object... args) {
         if (logProcessor == null) {
             throw new IllegalStateException("Please initialize logging by calling Lc.initialize(...) method");
         }
 
         if (priority >= logLevel) {
-            final StackTraceElement trace = Thread.currentThread().getStackTrace()[stackTraceCodeShift + 2 + stackTraceAdditionalDepth];
-            final String tag = trace.getFileName() + ":" + trace.getLineNumber();
 
             final String formattedMessage;
             try {
                 formattedMessage = String.format(message, args);
             } catch (Throwable exception) {
-                Lc.fatalException(exception);
+                Lc.asserted(exception);
                 return;
             }
 
@@ -100,6 +99,8 @@ public final class LcHelper {
                     DATE_TIME_FORMATTER.get().format(System.currentTimeMillis()),
                     Thread.currentThread().getName(), formattedMessage);
 
+            final StackTraceElement trace = Thread.currentThread().getStackTrace()[stackTraceCodeShift + 2 + stackTraceAdditionalDepth];
+            final String tag = trace.getFileName() + ":" + trace.getLineNumber();
             if (ex == null) {
                 logProcessor.processLogMessage(priority, tag, messageExtended);
             } else {
@@ -108,12 +109,12 @@ public final class LcHelper {
         }
     }
 
-    public static void logMessage(final int priority, final String message, final Throwable ex, Object... args) {
+    public static void logMessage(final int priority, final String message, final Throwable ex, final Object... args) {
         logMessage(priority, message, ex, 0, args);
     }
 
     @NonNull
-    public static String getCodePoint(@Nullable Object caller) {
+    public static String getCodePoint(@Nullable final Object caller) {
         final StackTraceElement trace = Thread.currentThread().getStackTrace()[stackTraceCodeShift];
         return (caller != null ? caller.getClass().getName() + '(' + caller.hashCode() + ") at " : "")
                 + trace.getFileName() + ':' + trace.getMethodName() + ':' + trace.getLineNumber();
@@ -122,15 +123,15 @@ public final class LcHelper {
     /* Prints stack trace in log with DEBUG level */
     public static void printStackTrace(final String tag) {
         if (logLevel <= Log.DEBUG) {
-            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, stackTraceCodeShift, stackTrace.length)));
         }
     }
 
     /* Error level log with exception */
-    public static void fatalException(@NonNull final Throwable ex) {
+    public static void assertion(@NonNull final Throwable ex) {
         logMessage(Log.ASSERT, "Fatal exception", ex);
-        if (crashOnFatalExceptions) {
+        if (crashOnAssertions) {
             if (ex instanceof ShouldNotHappenException) {
                 throw (ShouldNotHappenException) ex;
             } else {
@@ -140,7 +141,7 @@ public final class LcHelper {
     }
 
     @NonNull
-    private static String logLevelToString(int logLevel) {
+    private static String logLevelToString(final int logLevel) {
         switch (logLevel) {
             case Log.VERBOSE:
                 return "VERBOSE";
