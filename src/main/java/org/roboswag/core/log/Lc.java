@@ -80,12 +80,12 @@ public final class Lc {
     }
 
     /* Error level log with exception */
-    public static void asserted(@NonNull final String message) {
+    public static void assertion(@NonNull final String message) {
         LcHelper.assertion(new ShouldNotHappenException(message));
     }
 
     /* Error level log with exception */
-    public static void asserted(@NonNull final Throwable ex) {
+    public static void assertion(@NonNull final Throwable ex) {
         LcHelper.assertion(ex);
     }
 

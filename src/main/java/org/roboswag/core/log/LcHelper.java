@@ -91,7 +91,7 @@ public final class LcHelper {
             try {
                 formattedMessage = String.format(message, args);
             } catch (Throwable exception) {
-                Lc.asserted(exception);
+                Lc.assertion(exception);
                 return;
             }
 
