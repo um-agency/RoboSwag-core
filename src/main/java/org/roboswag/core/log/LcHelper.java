@@ -36,19 +36,20 @@ public final class LcHelper {
     private static int logLevel;
     private static boolean crashOnAssertions = true;
     private static LogProcessor logProcessor;
-    private static int stackTraceCodeShift;
+    private static final int STACK_TRACE_CODE_SHIFT;
 
     private static final ThreadLocalValue<SimpleDateFormat> DATE_TIME_FORMATTER
             = new ThreadLocalValue<>(() -> new SimpleDateFormat("HH:mm:ss.SSS", new Locale("ru")));
 
     static {
         final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (int i = 0; i < stackTrace.length; i++) {
-            if (stackTrace[i].getClassName().equals(LcHelper.class.getName())) {
-                stackTraceCodeShift = i + 1;
+        int stackDepth;
+        for (stackDepth = 0; stackDepth < stackTrace.length; stackDepth++) {
+            if (stackTrace[stackDepth].getClassName().equals(LcHelper.class.getName())) {
                 break;
             }
         }
+        STACK_TRACE_CODE_SHIFT = stackDepth + 1;
     }
 
     /* Returns if library should crash on fatal exceptions (default - true, set false for production) */
@@ -90,7 +91,7 @@ public final class LcHelper {
             final String formattedMessage;
             try {
                 formattedMessage = String.format(message, args);
-            } catch (Throwable exception) {
+            } catch (final Throwable exception) {
                 Lc.assertion(exception);
                 return;
             }
@@ -99,8 +100,8 @@ public final class LcHelper {
                     DATE_TIME_FORMATTER.get().format(System.currentTimeMillis()),
                     Thread.currentThread().getName(), formattedMessage);
 
-            final StackTraceElement trace = Thread.currentThread().getStackTrace()[stackTraceCodeShift + 2 + stackTraceAdditionalDepth];
-            final String tag = trace.getFileName() + ":" + trace.getLineNumber();
+            final StackTraceElement trace = Thread.currentThread().getStackTrace()[STACK_TRACE_CODE_SHIFT + 2 + stackTraceAdditionalDepth];
+            final String tag = trace.getFileName() + ':' + trace.getLineNumber();
             if (ex == null) {
                 logProcessor.processLogMessage(priority, tag, messageExtended);
             } else {
@@ -115,7 +116,7 @@ public final class LcHelper {
 
     @NonNull
     public static String getCodePoint(@Nullable final Object caller) {
-        final StackTraceElement trace = Thread.currentThread().getStackTrace()[stackTraceCodeShift];
+        final StackTraceElement trace = Thread.currentThread().getStackTrace()[STACK_TRACE_CODE_SHIFT];
         return (caller != null ? caller.getClass().getName() + '(' + caller.hashCode() + ") at " : "")
                 + trace.getFileName() + ':' + trace.getMethodName() + ':' + trace.getLineNumber();
     }
@@ -124,7 +125,7 @@ public final class LcHelper {
     public static void printStackTrace(final String tag) {
         if (logLevel <= Log.DEBUG) {
             final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-            Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, stackTraceCodeShift, stackTrace.length)));
+            Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, STACK_TRACE_CODE_SHIFT, stackTrace.length)));
         }
     }
 

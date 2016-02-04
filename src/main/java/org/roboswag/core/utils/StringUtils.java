@@ -12,12 +12,12 @@ import rx.functions.Func1;
  */
 public final class StringUtils {
 
-    /* Returns MD5 hash of string */
+    /* Returns MD5 hash of text */
     @NonNull
-    public static String md5(@NonNull final String string) {
+    public static String md5(@NonNull final String text) {
         try {
             final MessageDigest digest = MessageDigest.getInstance("MD5");
-            digest.update(string.getBytes("UTF-8"));
+            digest.update(text.getBytes("UTF-8"));
             final byte[] messageDigestArray = digest.digest();
 
             final StringBuilder hexString = new StringBuilder();
@@ -30,25 +30,25 @@ public final class StringUtils {
         }
     }
 
-    private static boolean containsCharLike(@NonNull final String string, @NonNull final Func1<Character, Boolean> condition) {
-        for (int i = 0; i < string.length(); i++) {
-            if (condition.call(string.charAt(i))) {
+    private static boolean containsCharLike(@NonNull final String text, @NonNull final Func1<Character, Boolean> condition) {
+        for (int i = 0; i < text.length(); i++) {
+            if (condition.call(text.charAt(i))) {
                 return true;
             }
         }
         return false;
     }
 
-    public static boolean containsNumbers(@NonNull final String string) {
-        return containsCharLike(string, Character::isDigit);
+    public static boolean containsNumbers(@NonNull final String text) {
+        return containsCharLike(text, Character::isDigit);
     }
 
-    public static boolean containsLowerCase(@NonNull final String string) {
-        return containsCharLike(string, Character::isLowerCase);
+    public static boolean containsLowerCase(@NonNull final String text) {
+        return containsCharLike(text, Character::isLowerCase);
     }
 
-    public static boolean containsUpperCase(@NonNull final String string) {
-        return containsCharLike(string, Character::isUpperCase);
+    public static boolean containsUpperCase(@NonNull final String text) {
+        return containsCharLike(text, Character::isUpperCase);
     }
 
     private StringUtils() {

@@ -28,7 +28,7 @@ import org.roboswag.core.utils.ShouldNotHappenException;
  * Created by Gavriil Sitnikov on 13/11/2015.
  * TODO: fill description
  */
-@SuppressWarnings("PMD.ShortClassName")
+@SuppressWarnings({"PMD.ShortClassName", "ClassNamingConvention", "StaticMethodNamingConvention"})
 public final class Lc {
 
     /* Debug level log */
@@ -52,7 +52,7 @@ public final class Lc {
     /* Info level log with exception */
     @SuppressWarnings({"PMD.ShortMethodName", "checkstyle:methodname"})
     public static void i(@NonNull final Throwable ex, final String message, final Object... args) {
-        LcHelper.logMessage(Log.INFO, message, ex);
+        LcHelper.logMessage(Log.INFO, message, ex, args);
     }
 
     /* Warning level log */
