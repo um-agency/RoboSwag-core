@@ -24,14 +24,21 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import org.roboswag.core.log.Lc;
 
+import java.util.concurrent.CountDownLatch;
+
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.android.schedulers.HandlerScheduler;
 
 /**
  * Created by Gavriil Sitnikov on 10/01/2016.
@@ -86,6 +93,35 @@ public final class RxAndroidUtils {
             if (subscriber != null) {
                 subscriber.onNext(null);
             }
+        }
+
+    }
+
+    @NonNull
+    public static Scheduler createLooperScheduler() {
+        final LooperThread thread = new LooperThread();
+        thread.start();
+        try {
+            thread.isHandlerInitialized.await();
+            return HandlerScheduler.from(thread.handler);
+        } catch (final InterruptedException e) {
+            Lc.w(e, "Interruption during looper creation");
+            return AndroidSchedulers.mainThread();
+        }
+    }
+
+    private static class LooperThread extends Thread {
+
+        private Handler handler;
+        private final CountDownLatch isHandlerInitialized = new CountDownLatch(1);
+
+        @Override
+        public void run() {
+            super.run();
+            Looper.prepare();
+            handler = new Handler();
+            isHandlerInitialized.countDown();
+            Looper.loop();
         }
 
     }
