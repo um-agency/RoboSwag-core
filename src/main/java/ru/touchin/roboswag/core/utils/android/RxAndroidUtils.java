@@ -17,7 +17,7 @@
  *
  */
 
-package org.roboswag.core.utils.android;
+package ru.touchin.roboswag.core.utils.android;
 
 import android.app.Service;
 import android.content.ComponentName;
@@ -30,7 +30,7 @@ import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import org.roboswag.core.log.Lc;
+import ru.touchin.roboswag.core.log.Lc;
 
 import java.util.concurrent.CountDownLatch;
 

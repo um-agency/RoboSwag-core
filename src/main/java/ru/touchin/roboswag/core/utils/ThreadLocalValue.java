@@ -17,28 +17,25 @@
  *
  */
 
-package org.roboswag.core.utils;
+package ru.touchin.roboswag.core.utils;
 
 import android.support.annotation.NonNull;
 
-public class ShouldNotHappenException extends RuntimeException {
+import rx.functions.Func0;
 
-    private static final long serialVersionUID = 0;
+public class ThreadLocalValue<T> extends ThreadLocal<T> {
 
-    public ShouldNotHappenException() {
+    @NonNull
+    private final Func0<T> creator;
+
+    public ThreadLocalValue(@NonNull final Func0<T> creator) {
         super();
+        this.creator = creator;
     }
 
-    public ShouldNotHappenException(@NonNull final String detailMessage) {
-        super(detailMessage);
-    }
-
-    public ShouldNotHappenException(@NonNull final String detailMessage, @NonNull final Throwable throwable) {
-        super(detailMessage, throwable);
-    }
-
-    public ShouldNotHappenException(@NonNull final Throwable throwable) {
-        super(throwable);
+    @Override
+    protected T initialValue() {
+        return creator.call();
     }
 
 }

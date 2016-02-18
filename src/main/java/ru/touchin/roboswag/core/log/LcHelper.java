@@ -17,15 +17,15 @@
  *
  */
 
-package org.roboswag.core.log;
+package ru.touchin.roboswag.core.log;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
-import org.roboswag.core.utils.ShouldNotHappenException;
-import org.roboswag.core.utils.ThreadLocalValue;
+import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
+import ru.touchin.roboswag.core.utils.ThreadLocalValue;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;

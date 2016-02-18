@@ -17,12 +17,12 @@
  *
  */
 
-package org.roboswag.core.log;
+package ru.touchin.roboswag.core.log;
 
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import org.roboswag.core.utils.ShouldNotHappenException;
+import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 
 /**
  * Created by Gavriil Sitnikov on 13/11/2015.

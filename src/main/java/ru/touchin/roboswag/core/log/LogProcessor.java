@@ -17,25 +17,16 @@
  *
  */
 
-package org.roboswag.core.utils;
+package ru.touchin.roboswag.core.log;
 
 import android.support.annotation.NonNull;
 
-import rx.functions.Func0;
+public interface LogProcessor {
 
-public class ThreadLocalValue<T> extends ThreadLocal<T> {
+    /* Processes log message (e.g. log it in Console or log it in Crashlytics) */
+    void processLogMessage(int logLevel, String tag, String message);
 
-    @NonNull
-    private final Func0<T> creator;
-
-    public ThreadLocalValue(@NonNull final Func0<T> creator) {
-        super();
-        this.creator = creator;
-    }
-
-    @Override
-    protected T initialValue() {
-        return creator.call();
-    }
+    /* Processes log message with exception (e.g. log it in Console or log it in Crashlytics) */
+    void processLogMessage(int logLevel, String tag, String message, @NonNull Throwable ex);
 
 }

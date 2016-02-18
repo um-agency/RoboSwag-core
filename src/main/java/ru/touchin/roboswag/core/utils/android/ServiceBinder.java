@@ -17,16 +17,33 @@
  *
  */
 
-package org.roboswag.core.log;
+package ru.touchin.roboswag.core.utils.android;
 
+import android.app.Service;
+import android.os.Binder;
 import android.support.annotation.NonNull;
 
-public interface LogProcessor {
+/**
+ * Created by Gavriil Sitnikov on 03/10/2015.
+ * Basic binding to service which holds service.
+ */
+public class ServiceBinder<TService extends Service> extends Binder {
 
-    /* Processes log message (e.g. log it in Console or log it in Crashlytics) */
-    void processLogMessage(int logLevel, String tag, String message);
+    @NonNull
+    private final TService service;
 
-    /* Processes log message with exception (e.g. log it in Console or log it in Crashlytics) */
-    void processLogMessage(int logLevel, String tag, String message, @NonNull Throwable ex);
+    public ServiceBinder(@NonNull final TService service) {
+        super();
+        this.service = service;
+    }
+
+    /**
+     * Returns service which created this binder.
+     * @return Returns service.
+     */
+    @NonNull
+    public TService getService() {
+        return service;
+    }
 
 }

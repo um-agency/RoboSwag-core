@@ -17,33 +17,28 @@
  *
  */
 
-package org.roboswag.core.utils.android;
+package ru.touchin.roboswag.core.utils;
 
-import android.app.Service;
-import android.os.Binder;
 import android.support.annotation.NonNull;
 
-/**
- * Created by Gavriil Sitnikov on 03/10/2015.
- * Basic binding to service which holds service.
- */
-public class ServiceBinder<TService extends Service> extends Binder {
+public class ShouldNotHappenException extends RuntimeException {
 
-    @NonNull
-    private final TService service;
+    private static final long serialVersionUID = 0;
 
-    public ServiceBinder(@NonNull final TService service) {
+    public ShouldNotHappenException() {
         super();
-        this.service = service;
     }
 
-    /**
-     * Returns service which created this binder.
-     * @return Returns service.
-     */
-    @NonNull
-    public TService getService() {
-        return service;
+    public ShouldNotHappenException(@NonNull final String detailMessage) {
+        super(detailMessage);
+    }
+
+    public ShouldNotHappenException(@NonNull final String detailMessage, @NonNull final Throwable throwable) {
+        super(detailMessage, throwable);
+    }
+
+    public ShouldNotHappenException(@NonNull final Throwable throwable) {
+        super(throwable);
     }
 
 }
