@@ -23,11 +23,21 @@ public class DataEntry<T> {
         this.error = null;
     }
 
-    public DataEntry(final long providedTime, final long expirationPeriod, @NonNull final Throwable error) {
-        this.providedTime = providedTime;
-        this.expirationPeriod = expirationPeriod;
+    public DataEntry(@NonNull final Throwable error) {
+        this.providedTime = 0;
+        this.expirationPeriod = 0;
         this.data = null;
         this.error = error;
+    }
+
+    @Nullable
+    public T getData() {
+        return data;
+    }
+
+    @Nullable
+    public Throwable getError() {
+        return error;
     }
 
 }
