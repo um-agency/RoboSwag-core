@@ -7,7 +7,7 @@ import java.util.Date;
 
 import ru.touchin.roboswag.core.log.Lc;
 import rx.Observable;
-import rx.subjects.BehaviorSubject;
+import rx.subjects.PublishSubject;
 
 /**
  * Created by Gavriil Sitnikov on 16/03/16.
@@ -32,7 +32,7 @@ public class DataProvider<T> {
     @NonNull
     private final Observable<DataEntry<T>> actualDataObservable;
     @NonNull
-    private final BehaviorSubject<Void> reloadEvent = BehaviorSubject.create((Void) null);
+    private final PublishSubject<Void> reloadEvent = PublishSubject.create();
 
     public DataProvider(@NonNull final String key, final long expirationPeriod,
                         @Nullable final MemoryCache memoryCache, @Nullable final DiskCache diskCache,
@@ -78,7 +78,7 @@ public class DataProvider<T> {
 
     @NonNull
     private Observable<DataEntry<T>> createActualDataObservable() {
-        return reloadEvent
+        return Observable.concat(Observable.just(null), reloadEvent)
                 .switchMap(ignored -> actualDataGetter
                         .doOnNext(data -> {
                             if (memoryCache != null) {
@@ -90,7 +90,8 @@ public class DataProvider<T> {
                         })
                         .map(data -> new DataEntry<>(new Date().getTime(), expirationPeriod, data)))
                 .replay(1)
-                .refCount();
+                .refCount()
+                .doOnSubscribe(() -> reloadEvent.onNext(null));
     }
 
     @NonNull
@@ -101,10 +102,6 @@ public class DataProvider<T> {
     @NonNull
     public Observable<DataEntry<T>> observeActualData() {
         return actualDataObservable.onErrorReturn(DataEntry::new);
-    }
-
-    public void reload() {
-        reloadEvent.onNext(null);
     }
 
 }
