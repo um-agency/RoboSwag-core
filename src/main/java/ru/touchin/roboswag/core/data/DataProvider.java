@@ -89,6 +89,7 @@ public class DataProvider<T> {
                             }
                         })
                         .map(data -> new DataEntry<>(new Date().getTime(), expirationPeriod, data)))
+                .onErrorReturn(DataEntry::new)
                 .replay(1)
                 .refCount()
                 .doOnSubscribe(() -> reloadEvent.onNext(null));
@@ -101,7 +102,7 @@ public class DataProvider<T> {
 
     @NonNull
     public Observable<DataEntry<T>> observeActualData() {
-        return actualDataObservable.onErrorReturn(DataEntry::new);
+        return actualDataObservable;
     }
 
 }
