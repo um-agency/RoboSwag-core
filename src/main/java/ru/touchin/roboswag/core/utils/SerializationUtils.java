@@ -14,21 +14,22 @@ import java.io.Serializable;
  */
 public final class SerializationUtils {
 
-    public static void writeNullableObject(@NonNull final ObjectOutputStream out, @Nullable final Serializable obj) throws IOException {
+    public static void writeNullableObject(@NonNull final ObjectOutputStream outputStream, @Nullable final Serializable obj) throws IOException {
         final boolean isNull = obj == null;
-        out.writeBoolean(!isNull);
+        outputStream.writeBoolean(!isNull);
         if (!isNull) {
-            out.writeObject(obj);
+            outputStream.writeObject(obj);
         }
     }
 
     @SuppressWarnings("unchecked")
     @Nullable
-    public static <T extends Serializable> T readNullableObject(@NonNull final ObjectInputStream in) throws IOException, ClassNotFoundException {
-        if (!in.readBoolean()) {
+    public static <T extends Serializable> T readNullableObject(@NonNull final ObjectInputStream inputStream)
+            throws IOException, ClassNotFoundException {
+        if (!inputStream.readBoolean()) {
             return null;
         }
-        return (T) in.readObject();
+        return (T) inputStream.readObject();
     }
 
     private SerializationUtils() {
