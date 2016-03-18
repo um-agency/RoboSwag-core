@@ -56,15 +56,7 @@ public class DataProvider<T> {
                     subscriber.onNext(memoryCache != null ? memoryCache.get(key) : null);
                     subscriber.onCompleted();
                 })
-                .switchMap(memoryCacheEntry -> {
-                    if (memoryCacheEntry == null) {
-                        return diskCache != null ? diskCache.get(key).first() : Observable.empty();
-                    }
-                    if (allowExpired || !memoryCacheEntry.isExpired(expirationPeriod)) {
-                        return Observable.just(memoryCacheEntry);
-                    }
-                    return Observable.empty();
-                })
+                .switchMap(memoryCacheEntry -> getDiskCacheObservable(allowExpired, memoryCacheEntry))
                 .switchMap(cacheEntry -> cacheEntry != null && (allowExpired || !cacheEntry.isExpired(expirationPeriod))
                         ? Observable.just(new DataEntry<>(cacheEntry.getCachedTime(), expirationPeriod, (T) cacheEntry.getData()))
                         : Observable.empty())
@@ -74,6 +66,17 @@ public class DataProvider<T> {
                 })
                 .replay(1)
                 .refCount();
+    }
+
+    @NonNull
+    private Observable<CacheEntry> getDiskCacheObservable(final boolean allowExpired, @Nullable final CacheEntry memoryCacheEntry) {
+        if (memoryCacheEntry == null) {
+            return diskCache != null ? diskCache.get(key).first() : Observable.empty();
+        }
+        if (allowExpired || !memoryCacheEntry.isExpired(expirationPeriod)) {
+            return Observable.just(memoryCacheEntry);
+        }
+        return Observable.empty();
     }
 
     @NonNull
