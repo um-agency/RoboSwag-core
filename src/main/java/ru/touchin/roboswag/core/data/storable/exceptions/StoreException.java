@@ -17,21 +17,22 @@
  *
  */
 
-package ru.touchin.roboswag.core.data;
+package ru.touchin.roboswag.core.data.storable.exceptions;
 
 import android.support.annotation.NonNull;
 
-import rx.Observable;
-
 /**
- * Created by Gavriil Sitnikov on 16/03/16.
- * TODO: description
+ * Created by Gavriil Sitnikov on 04/10/2015.
+ * TODO: fill description
  */
-public interface DiskCache {
+public class StoreException extends Exception {
 
-    @NonNull
-    Observable<CacheEntry> get(@NonNull String key);
+    public StoreException(@NonNull String message) {
+        super(message);
+    }
 
-    void put(@NonNull String key, @NonNull Object data);
+    public StoreException(@NonNull String message, @NonNull Throwable throwable) {
+        super(message, throwable);
+    }
 
 }

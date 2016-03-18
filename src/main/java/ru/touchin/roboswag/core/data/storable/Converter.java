@@ -17,20 +17,27 @@
  *
  */
 
-package ru.touchin.roboswag.core.data;
+package ru.touchin.roboswag.core.data.storable;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import ru.touchin.roboswag.core.data.storable.exceptions.ConversionException;
+
 /**
- * Created by Gavriil Sitnikov on 16/03/16.
- * TODO: description
+ * Created by Gavriil Sitnikov on 04/10/2015.
+ * TODO: fill description
  */
-public interface MemoryCache {
+public interface Converter<TObject, TStoreObject> {
 
     @Nullable
-    CacheEntry get(@NonNull String key);
+    TStoreObject toStoreObject(@NonNull Class<TObject> objectClass,
+                               @NonNull Class<TStoreObject> storeObjectClass,
+                               @Nullable TObject object) throws ConversionException;
 
-    void put(@NonNull String key, @NonNull Object data);
+    @Nullable
+    TObject toObject(@NonNull Class<TObject> objectClass,
+                     @NonNull Class<TStoreObject> storeObjectClass,
+                     @Nullable TStoreObject storeObject) throws ConversionException;
 
 }

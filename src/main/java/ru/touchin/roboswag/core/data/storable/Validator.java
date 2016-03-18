@@ -17,21 +17,18 @@
  *
  */
 
-package ru.touchin.roboswag.core.data;
+package ru.touchin.roboswag.core.data.storable;
 
-import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
-import rx.Observable;
+import ru.touchin.roboswag.core.data.storable.exceptions.ValidationException;
 
 /**
- * Created by Gavriil Sitnikov on 16/03/16.
- * TODO: description
+ * Created by Gavriil Sitnikov on 04/10/2015.
+ * TODO: fill description
  */
-public interface DiskCache {
+public interface Validator<T> {
 
-    @NonNull
-    Observable<CacheEntry> get(@NonNull String key);
-
-    void put(@NonNull String key, @NonNull Object data);
+    void validate(@Nullable T value) throws ValidationException;
 
 }
