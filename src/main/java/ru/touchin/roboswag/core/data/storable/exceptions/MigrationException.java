@@ -27,11 +27,11 @@ import android.support.annotation.NonNull;
  */
 public class MigrationException extends Exception {
 
-    public MigrationException(@NonNull String message) {
+    public MigrationException(@NonNull final String message) {
         super(message);
     }
 
-    public MigrationException(@NonNull String message, @NonNull Throwable throwable) {
+    public MigrationException(@NonNull final String message, @NonNull final Throwable throwable) {
         super(message, throwable);
     }
 

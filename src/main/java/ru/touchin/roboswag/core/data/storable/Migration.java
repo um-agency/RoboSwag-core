@@ -39,16 +39,18 @@ public class Migration<TKey> {
     @NonNull
     private final List<Migrator<TKey, ?, ?>> migrators = new ArrayList<>();
 
-    public Migration(@NonNull Store<TKey, Long> versionsStore, long latestVersion) {
+    public Migration(@NonNull final Store<TKey, Long> versionsStore, final long latestVersion) {
         this.versionsStore = versionsStore;
         this.latestVersion = latestVersion;
     }
 
-    public void addMigrator(@NonNull Migrator<TKey, ?, ?> migrator) {
+    public void addMigrator(@NonNull final Migrator<TKey, ?, ?> migrator) {
         migrators.add(migrator);
     }
 
-    public void migrateToLatestVersion(@NonNull TKey key) throws MigrationException {
+    @SuppressWarnings({"PMD.NPathComplexity", "PMD.StdCyclomaticComplexity",
+            "PMD.ModifiedCyclomaticComplexity", "PMD.CyclomaticComplexity"})
+    public void migrateToLatestVersion(@NonNull final TKey key) throws MigrationException {
         Long version;
         try {
             version = versionsStore.loadObject(Long.class, key);
@@ -61,9 +63,9 @@ public class Migration<TKey> {
         }
 
         while (!version.equals(latestVersion)) {
-            long oldVersion = version;
+            final long oldVersion = version;
             boolean migrationTriggered = false;
-            for (Migrator<TKey, ?, ?> migrator : migrators) {
+            for (final Migrator<TKey, ?, ?> migrator : migrators) {
                 if (migrator.supportMigrationFor(version) && migrator.getOldStore().contains(key)) {
                     version = migrator.migrate(key, version);
                     migrationTriggered = true;

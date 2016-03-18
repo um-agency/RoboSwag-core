@@ -21,14 +21,13 @@ package ru.touchin.roboswag.core.data.storable;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
-import ru.touchin.roboswag.core.utils.ObjectUtils;
-import ru.touchin.roboswag.core.utils.ObjectIsMutableException;
 import ru.touchin.roboswag.core.data.storable.exceptions.ConversionException;
 import ru.touchin.roboswag.core.data.storable.exceptions.MigrationException;
 import ru.touchin.roboswag.core.data.storable.exceptions.StoreException;
 import ru.touchin.roboswag.core.data.storable.exceptions.ValidationException;
+import ru.touchin.roboswag.core.log.Lc;
+import ru.touchin.roboswag.core.utils.ObjectUtils;
 import rx.Observable;
 import rx.functions.Actions;
 import rx.schedulers.Schedulers;
@@ -38,20 +37,7 @@ import rx.subjects.PublishSubject;
  * Created by Gavriil Sitnikov on 04/10/2015.
  * TODO
  */
-public abstract class Storable<TKey, TObject, TStoreObject> {
-
-    private static final String LOG_TAG = "Storable";
-
-    private static int globalLogLevel = Log.ERROR;
-    private static boolean isInDebugMode = false;
-
-    public static void setLogLevel(int logLevel) {
-        globalLogLevel = logLevel;
-    }
-
-    public static void setDebugMode(boolean debugMode) {
-        isInDebugMode = debugMode;
-    }
+public class Storable<TKey, TObject, TStoreObject> {
 
     @NonNull
     private final String name;
@@ -76,16 +62,16 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
     @NonNull
     private final PublishSubject<TObject> valueSubject = PublishSubject.create();
     @NonNull
-    private final Observable<TObject> valueObservable = Observable.<TObject>create(subscriber -> {
-        try {
-            subscriber.onNext(get());
-        } catch (Exception throwable) {
-            if (globalLogLevel <= Log.ERROR) {
-                Log.e(LOG_TAG, "Error during get: " + Log.getStackTraceString(throwable));
-            }
-            subscriber.onError(throwable);
-        }
-    }).subscribeOn(Schedulers.io())
+    private final Observable<TObject> valueObservable = Observable
+            .<TObject>create(subscriber -> {
+                try {
+                    subscriber.onNext(get());
+                } catch (Exception throwable) {
+                    Lc.e(throwable, "Error during get");
+                    subscriber.onError(throwable);
+                }
+            })
+            .subscribeOn(Schedulers.io())
             .concatWith(valueSubject)
             .replay(1).autoConnect();
 
@@ -96,16 +82,17 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
     @Nullable
     private CachedValue<TObject> cachedValue;
 
-    protected Storable(@NonNull String name,
-                       @NonNull TKey key,
-                       @NonNull Class<TObject> objectClass,
-                       @NonNull Class<TStoreObject> storeObjectClass,
-                       @NonNull Store<TKey, TStoreObject> store,
-                       @NonNull Converter<TObject, TStoreObject> converter,
-                       boolean cloneOnGet,
-                       @Nullable Migration<TKey> migration,
-                       @Nullable Validator<TObject> validator,
-                       @Nullable TObject defaultValue) {
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    protected Storable(@NonNull final String name,
+                       @NonNull final TKey key,
+                       @NonNull final Class<TObject> objectClass,
+                       @NonNull final Class<TStoreObject> storeObjectClass,
+                       @NonNull final Store<TKey, TStoreObject> store,
+                       @NonNull final Converter<TObject, TStoreObject> converter,
+                       final boolean cloneOnGet,
+                       @Nullable final Migration<TKey> migration,
+                       @Nullable final Validator<TObject> validator,
+                       @Nullable final TObject defaultValue) {
         this.name = name;
         this.key = key;
         this.objectClass = objectClass;
@@ -117,13 +104,14 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
         this.validator = validator;
         this.defaultValue = defaultValue;
 
+        /*TODO
         if (isInDebugMode && !cloneOnGet) {
             try {
                 ObjectUtils.checkIfIsImmutable(objectClass);
             } catch (ObjectIsMutableException throwable) {
                 Log.w(LOG_TAG, Log.getStackTraceString(throwable));
             }
-        }
+        }*/
     }
 
     @NonNull
@@ -172,14 +160,10 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
                     try {
                         migration.migrateToLatestVersion(key);
                     } catch (MigrationException throwable) {
-                        if (isInDebugMode) {
-                            throw throwable;
-                        } else if (globalLogLevel <= Log.ERROR) {
-                            Log.e(LOG_TAG, "Error during migration: " + Log.getStackTraceString(throwable));
-                        }
+                        Lc.assertion(throwable);
                     }
                 }
-                TStoreObject storeObject = store.loadObject(storeObjectClass, key);
+                final TStoreObject storeObject = store.loadObject(storeObjectClass, key);
                 cachedStoreValue = storeObject == null && defaultValue != null
                         ? getCachedStoreDefaultValue()
                         : new CachedValue<>(storeObject);
@@ -193,7 +177,7 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
     private TObject getDirectValue() throws StoreException, ConversionException {
         synchronized (this) {
             if (cachedValue == null) {
-                TStoreObject storeObject = store.loadObject(storeObjectClass, key);
+                final TStoreObject storeObject = store.loadObject(storeObjectClass, key);
                 cachedValue = storeObject == null && defaultValue != null
                         ? new CachedValue<>(defaultValue)
                         : new CachedValue<>(converter.toObject(objectClass, storeObjectClass, storeObject));
@@ -206,15 +190,14 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
     public TObject get() throws StoreException, ConversionException, MigrationException {
         synchronized (this) {
             if (cloneOnGet) {
-                TStoreObject storeValue = getStoreValue();
+                final TStoreObject storeValue = getStoreValue();
                 return storeValue != null ? converter.toObject(objectClass, storeObjectClass, storeValue) : null;
-            } else {
-                return getDirectValue();
             }
+            return getDirectValue();
         }
     }
 
-    private void updateCachedValue(@Nullable TObject value, @Nullable TStoreObject storeObject) throws ConversionException {
+    private void updateCachedValue(@Nullable final TObject value, @Nullable final TStoreObject storeObject) throws ConversionException {
         cachedValue = null;
         cachedStoreValue = null;
         if (cloneOnGet) {
@@ -228,7 +211,7 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
         }
     }
 
-    public void set(@Nullable TObject value)
+    public void set(@Nullable final TObject value)
             throws ValidationException, ConversionException, StoreException, MigrationException {
         synchronized (this) {
             if (validator != null) {
@@ -243,9 +226,9 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
                 }
             }
 
-            TStoreObject valueToStore = converter.toStoreObject(objectClass, storeObjectClass, value);
+            final TStoreObject valueToStore = converter.toStoreObject(objectClass, storeObjectClass, value);
             try {
-                TStoreObject storedValue = getStoreValue();
+                final TStoreObject storedValue = getStoreValue();
                 if (ObjectUtils.equals(storedValue, valueToStore)) {
                     return;
                 }
@@ -254,9 +237,7 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
                 }
             } catch (Exception throwable) {
                 // some invalid value in store
-                if (globalLogLevel <= Log.WARN) {
-                    Log.w(LOG_TAG, "Can't get current store value: " + Log.getStackTraceString(throwable));
-                }
+                Lc.e(throwable, "Can't get current store value");
             }
 
             store.storeObject(storeObjectClass, key, valueToStore);
@@ -265,24 +246,16 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
         }
     }
 
-    public void setAsync(@Nullable TObject value) {
-        setObservable(value).subscribe(Actions.empty(), this::onSetError);
+    public void setAsync(@Nullable final TObject value) {
+        setObservable(value).subscribe(Actions.empty(), Lc::assertion);
     }
 
-    private void onSetError(Throwable throwable) {
-        if (globalLogLevel <= Log.ERROR) {
-            Log.e(LOG_TAG, "Error during set: " + Log.getStackTraceString(throwable));
-        }
-    }
-
-    public Observable<?> setObservable(@Nullable TObject value) {
+    public Observable<?> setObservable(@Nullable final TObject value) {
         return Observable.create(subscriber -> {
             try {
                 set(value);
             } catch (Exception throwable) {
-                if (globalLogLevel <= Log.ERROR) {
-                    Log.e(LOG_TAG, "Error during set: " + Log.getStackTraceString(throwable));
-                }
+                Lc.e(throwable, "Error during set");
                 subscriber.onError(throwable);
             }
             subscriber.onCompleted();
@@ -293,19 +266,17 @@ public abstract class Storable<TKey, TObject, TStoreObject> {
         return valueObservable;
     }
 
-    protected void onValueChanged(@Nullable TObject newValue, TObject oldValue) {
+    protected void onValueChanged(@Nullable final TObject newValue, final TObject oldValue) {
         valueSubject.onNext(newValue);
-        if (globalLogLevel <= Log.INFO) {
-            Log.w(LOG_TAG, "Value changed from '" + oldValue + "' to '" + newValue + "'");
-        }
+        Lc.d("Value changed from '%s' to '%s'", oldValue, newValue);
     }
 
-    private class CachedValue<T> {
+    private static class CachedValue<T> {
 
         @Nullable
         private final T value;
 
-        private CachedValue(@Nullable T value) {
+        public CachedValue(@Nullable final T value) {
             this.value = value;
         }
 

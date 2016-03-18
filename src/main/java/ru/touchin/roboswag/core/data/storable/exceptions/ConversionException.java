@@ -27,11 +27,11 @@ import android.support.annotation.NonNull;
  */
 public class ConversionException extends Exception {
 
-    public ConversionException(@NonNull String message) {
+    public ConversionException(@NonNull final String message) {
         super(message);
     }
 
-    public ConversionException(@NonNull String message, @NonNull Throwable throwable) {
+    public ConversionException(@NonNull final String message, @NonNull final Throwable throwable) {
         super(message, throwable);
     }
 

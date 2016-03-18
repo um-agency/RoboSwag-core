@@ -43,59 +43,61 @@ public final class ObjectUtils {
     private static final List<Class> IMMUTABLE_COLLECTIONS_TYPES
             = Arrays.asList(AbstractList.class, AbstractMap.class, AbstractSet.class);
 
-    public static boolean equals(@Nullable Object object1, @Nullable Object object2) {
-        // copy of Arrays.deepEqualsElements
-
+    // copy of Arrays.deepEqualsElements
+    @SuppressWarnings({"PMD.NPathComplexity", "PMD.StdCyclomaticComplexity",
+            "PMD.ModifiedCyclomaticComplexity", "PMD.CyclomaticComplexity", "PMD.CompareObjectsWithEquals"})
+    public static boolean equals(@Nullable final Object object1, @Nullable final Object object2) {
         if (object1 == object2) {
             return true;
         }
-
         if (object1 == null || object2 == null) {
             return false;
         }
 
-        Class<?> cl1 = object1.getClass().getComponentType();
-        Class<?> cl2 = object2.getClass().getComponentType();
+        final Class<?> elementType1 = object1.getClass().getComponentType();
+        final Class<?> elementType2 = object2.getClass().getComponentType();
 
-        if (cl1 != cl2) {
+        if (!(elementType1 == null ? elementType2 == null : elementType1.equals(elementType2))) {
             return false;
         }
-
-        if (cl1 == null) {
+        if (elementType1 == null) {
             return object1.equals(object2);
         }
+        return isArraysEquals(object1, object2, elementType1);
+    }
 
-        /*
-         * compare as arrays
-         */
+    @SuppressWarnings("PMD.AvoidUsingShortType")
+    private static boolean isArraysEquals(@NonNull final Object object1, @Nullable final Object object2, final Class<?> elementType) {
         if (object1 instanceof Object[]) {
             return Arrays.deepEquals((Object[]) object1, (Object[]) object2);
-        } else if (cl1 == int.class) {
+        } else if (elementType == int.class) {
             return Arrays.equals((int[]) object1, (int[]) object2);
-        } else if (cl1 == char.class) {
+        } else if (elementType == char.class) {
             return Arrays.equals((char[]) object1, (char[]) object2);
-        } else if (cl1 == boolean.class) {
+        } else if (elementType == boolean.class) {
             return Arrays.equals((boolean[]) object1, (boolean[]) object2);
-        } else if (cl1 == byte.class) {
+        } else if (elementType == byte.class) {
             return Arrays.equals((byte[]) object1, (byte[]) object2);
-        } else if (cl1 == long.class) {
+        } else if (elementType == long.class) {
             return Arrays.equals((long[]) object1, (long[]) object2);
-        } else if (cl1 == float.class) {
+        } else if (elementType == float.class) {
             return Arrays.equals((float[]) object1, (float[]) object2);
-        } else if (cl1 == double.class) {
+        } else if (elementType == double.class) {
             return Arrays.equals((double[]) object1, (double[]) object2);
         } else {
             return Arrays.equals((short[]) object1, (short[]) object2);
         }
     }
 
-    public static void checkIfIsImmutable(@NonNull Class<?> objectClass) throws ObjectIsMutableException {
+    public static void checkIfIsImmutable(@NonNull final Class<?> objectClass) throws ObjectIsMutableException {
         checkIfIsImmutable(objectClass, false, new HashSet<>());
     }
 
-    private static void checkIfIsImmutable(@NonNull Class<?> objectClass,
-                                           boolean isSuperclass,
-                                           @NonNull Set<Class> checkedClasses)
+    @SuppressWarnings({"PMD.NPathComplexity", "PMD.StdCyclomaticComplexity",
+            "PMD.ModifiedCyclomaticComplexity", "PMD.CyclomaticComplexity"})
+    private static void checkIfIsImmutable(@NonNull final Class<?> objectClass,
+                                           final boolean isSuperclass,
+                                           @NonNull final Set<Class> checkedClasses)
             throws ObjectIsMutableException {
 
         if (checkedClasses.contains(objectClass)) {
@@ -106,13 +108,11 @@ public final class ObjectUtils {
         if (objectClass.isArray()) {
             throw new ObjectIsMutableException(objectClass + " is array which is mutable");
         }
-
         if (objectClass.isPrimitive() || objectClass.getSuperclass() == Number.class
                 || objectClass.isEnum() || objectClass == Boolean.class
                 || objectClass == String.class || objectClass == Object.class) {
             return;
         }
-
         if (isImmutableCollection(objectClass, objectClass.getGenericSuperclass(), checkedClasses)) {
             return;
         }
@@ -123,7 +123,7 @@ public final class ObjectUtils {
             throw new ObjectIsMutableException(objectClass + " is not final and static");
         }
 
-        for (Field field : objectClass.getDeclaredFields()) {
+        for (final Field field : objectClass.getDeclaredFields()) {
             if (!Modifier.isFinal(field.getModifiers())) {
                 throw new ObjectIsMutableException("Field " + field.getName() + " of class " + objectClass + " is not final");
             }
@@ -138,25 +138,25 @@ public final class ObjectUtils {
         }
     }
 
-    private static boolean isImmutableCollection(@NonNull Class<?> objectClass,
-                                                 @Nullable Type genericType,
-                                                 @NonNull Set<Class> checkedClasses)
+    private static boolean isImmutableCollection(@NonNull final Class<?> objectClass,
+                                                 @Nullable final Type genericType,
+                                                 @NonNull final Set<Class> checkedClasses)
             throws ObjectIsMutableException {
-        for (Class<?> collectionClass : IMMUTABLE_COLLECTIONS_TYPES) {
-            if (collectionClass != objectClass && collectionClass != objectClass.getSuperclass()) {
-                continue;
-            }
-
-            if (!(genericType instanceof ParameterizedType)) {
-                throw new ObjectIsMutableException(objectClass + " is immutable collection but generic type " + genericType + " is not ParameterizedType");
-            }
-            for (Type parameterType : ((ParameterizedType) genericType).getActualTypeArguments()) {
-                if (!(parameterType instanceof Class)) {
-                    throw new ObjectIsMutableException(objectClass + " is immutable collection but generic parameterType " + parameterType + "is not ParameterizedType");
+        for (final Class<?> collectionClass : IMMUTABLE_COLLECTIONS_TYPES) {
+            if (collectionClass.equals(objectClass) || collectionClass.equals(objectClass.getSuperclass())) {
+                if (!(genericType instanceof ParameterizedType)) {
+                    throw new ObjectIsMutableException(objectClass + " is immutable collection but generic type "
+                            + genericType + " is not ParameterizedType");
                 }
-                checkIfIsImmutable((Class) parameterType, false, checkedClasses);
+                for (final Type parameterType : ((ParameterizedType) genericType).getActualTypeArguments()) {
+                    if (!(parameterType instanceof Class)) {
+                        throw new ObjectIsMutableException(objectClass + " is immutable collection but generic parameterType "
+                                + parameterType + "is not ParameterizedType");
+                    }
+                    checkIfIsImmutable((Class) parameterType, false, checkedClasses);
+                }
+                return true;
             }
-            return true;
         }
         return false;
     }

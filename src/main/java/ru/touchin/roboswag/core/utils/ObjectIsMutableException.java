@@ -27,7 +27,7 @@ import android.support.annotation.NonNull;
  */
 public class ObjectIsMutableException extends Exception {
 
-    public ObjectIsMutableException(@NonNull String message){
+    public ObjectIsMutableException(@NonNull final String message) {
         super(message);
     }
 

@@ -36,8 +36,8 @@ public abstract class Migrator<TKey, TOldStoreObject, TNewStoreObject> {
     @NonNull
     private final Store<TKey, TNewStoreObject> newStore;
 
-    public Migrator(@NonNull Store<TKey, TOldStoreObject> oldStore,
-                    @NonNull Store<TKey, TNewStoreObject> newStore) {
+    public Migrator(@NonNull final Store<TKey, TOldStoreObject> oldStore,
+                    @NonNull final Store<TKey, TNewStoreObject> newStore) {
         this.oldStore = oldStore;
         this.newStore = newStore;
     }
@@ -54,7 +54,7 @@ public abstract class Migrator<TKey, TOldStoreObject, TNewStoreObject> {
 
     public abstract boolean supportMigrationFor(long version);
 
-    public long migrate(TKey oldKey, long version) throws MigrationException {
+    public long migrate(final TKey oldKey, final long version) throws MigrationException {
         if (!supportMigrationFor(version)) {
             throw new MigrationException("Version " + version + " not supported by " + this);
         }

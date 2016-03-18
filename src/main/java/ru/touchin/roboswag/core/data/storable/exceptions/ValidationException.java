@@ -27,11 +27,11 @@ import android.support.annotation.NonNull;
  */
 public class ValidationException extends Exception {
 
-    public ValidationException(@NonNull String message) {
+    public ValidationException(@NonNull final String message) {
         super(message);
     }
 
-    public ValidationException(@NonNull String message, @NonNull Throwable throwable) {
+    public ValidationException(@NonNull final String message, @NonNull final Throwable throwable) {
         super(message, throwable);
     }
 

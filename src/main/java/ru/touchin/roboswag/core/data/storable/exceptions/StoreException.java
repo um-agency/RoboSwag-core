@@ -27,11 +27,11 @@ import android.support.annotation.NonNull;
  */
 public class StoreException extends Exception {
 
-    public StoreException(@NonNull String message) {
+    public StoreException(@NonNull final String message) {
         super(message);
     }
 
-    public StoreException(@NonNull String message, @NonNull Throwable throwable) {
+    public StoreException(@NonNull final String message, @NonNull final Throwable throwable) {
         super(message, throwable);
     }
 
