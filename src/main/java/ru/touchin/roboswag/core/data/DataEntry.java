@@ -30,6 +30,14 @@ public class DataEntry<T> {
         this.error = error;
     }
 
+    public long getProvidedTime() {
+        return providedTime;
+    }
+
+    public long getExpirationPeriod() {
+        return expirationPeriod;
+    }
+
     @Nullable
     public T getData() {
         return data;

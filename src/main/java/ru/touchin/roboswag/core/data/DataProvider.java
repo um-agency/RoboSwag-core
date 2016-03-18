@@ -59,11 +59,11 @@ public class DataProvider<T> {
                 .switchMap(memoryCacheEntry -> {
                     if (memoryCacheEntry == null) {
                         return diskCache != null ? diskCache.get(key).first() : Observable.empty();
-                    } else if (allowExpired || !memoryCacheEntry.isExpired(expirationPeriod)) {
-                        return Observable.just(memoryCacheEntry);
-                    } else {
-                        return Observable.empty();
                     }
+                    if (allowExpired || !memoryCacheEntry.isExpired(expirationPeriod)) {
+                        return Observable.just(memoryCacheEntry);
+                    }
+                    return Observable.empty();
                 })
                 .switchMap(cacheEntry -> cacheEntry != null && (allowExpired || !cacheEntry.isExpired(expirationPeriod))
                         ? Observable.just(new DataEntry<>(cacheEntry.getCachedTime(), expirationPeriod, (T) cacheEntry.getData()))
