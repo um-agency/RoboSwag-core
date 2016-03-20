@@ -70,10 +70,12 @@ public class Storable<TKey, TObject, TStoreObject> {
                     Lc.e(throwable, "Error during get");
                     subscriber.onError(throwable);
                 }
+                subscriber.onCompleted();
             })
             .subscribeOn(Schedulers.io())
             .concatWith(valueSubject)
-            .replay(1).autoConnect();
+            .replay(1)
+            .refCount();
 
     @Nullable
     private CachedValue<TStoreObject> cachedStoreDefaultValue;
