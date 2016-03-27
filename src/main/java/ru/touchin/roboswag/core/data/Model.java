@@ -23,7 +23,9 @@ package ru.touchin.roboswag.core.data;
  * Created by Gavriil Sitnikov on 23/03/2016.
  * TODO: description
  */
-public class Model {
+@SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
+//AbstractClassWithoutAbstractMethod: objects of this class actually shouldn't exist
+public abstract class Model {
 
     public void validate() {
         //do nothing
