@@ -22,7 +22,7 @@ package ru.touchin.roboswag.core.data.storable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import ru.touchin.roboswag.core.data.storable.exceptions.ConversionException;
+import ru.touchin.roboswag.core.data.exceptions.ConversionException;
 
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.

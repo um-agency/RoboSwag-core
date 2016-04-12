@@ -24,8 +24,8 @@ import android.support.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import ru.touchin.roboswag.core.data.storable.exceptions.MigrationException;
-import ru.touchin.roboswag.core.data.storable.exceptions.StoreException;
+import ru.touchin.roboswag.core.data.exceptions.MigrationException;
+import ru.touchin.roboswag.core.data.exceptions.StoreException;
 
 /**
  * Created by Gavriil Sitnikov on 06/10/2015.

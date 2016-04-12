@@ -19,6 +19,12 @@
 
 package ru.touchin.roboswag.core.data;
 
+import android.support.annotation.NonNull;
+
+import java.util.List;
+
+import ru.touchin.roboswag.core.data.exceptions.ValidationException;
+
 /**
  * Created by Gavriil Sitnikov on 23/03/2016.
  * TODO: description
@@ -27,12 +33,16 @@ package ru.touchin.roboswag.core.data;
 //AbstractClassWithoutAbstractMethod: objects of this class actually shouldn't exist
 public abstract class Model {
 
-    public void validate() {
-        //do nothing
+    protected static void validateList(@NonNull final List list) throws ValidationException {
+        for (final Object item : list) {
+            if (item instanceof Model) {
+                ((Model) item).validate();
+            }
+        }
     }
 
-    public boolean isValid() {
-        return true;
+    public void validate() throws ValidationException {
+        //do nothing
     }
 
 }

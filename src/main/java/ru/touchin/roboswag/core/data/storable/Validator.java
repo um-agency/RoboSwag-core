@@ -21,7 +21,7 @@ package ru.touchin.roboswag.core.data.storable;
 
 import android.support.annotation.Nullable;
 
-import ru.touchin.roboswag.core.data.storable.exceptions.ValidationException;
+import ru.touchin.roboswag.core.data.exceptions.ValidationException;
 
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.

@@ -21,7 +21,7 @@ package ru.touchin.roboswag.core.data.storable;
 
 import android.support.annotation.NonNull;
 
-import ru.touchin.roboswag.core.data.storable.exceptions.MigrationException;
+import ru.touchin.roboswag.core.data.exceptions.MigrationException;
 
 /**
  * Created by Gavriil Sitnikov on 05/10/2015.

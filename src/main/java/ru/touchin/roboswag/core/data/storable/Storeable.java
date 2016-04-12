@@ -22,10 +22,10 @@ package ru.touchin.roboswag.core.data.storable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import ru.touchin.roboswag.core.data.storable.exceptions.ConversionException;
-import ru.touchin.roboswag.core.data.storable.exceptions.MigrationException;
-import ru.touchin.roboswag.core.data.storable.exceptions.StoreException;
-import ru.touchin.roboswag.core.data.storable.exceptions.ValidationException;
+import ru.touchin.roboswag.core.data.exceptions.ConversionException;
+import ru.touchin.roboswag.core.data.exceptions.MigrationException;
+import ru.touchin.roboswag.core.data.exceptions.StoreException;
+import ru.touchin.roboswag.core.data.exceptions.ValidationException;
 import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.utils.ObjectUtils;
 import rx.Observable;
@@ -37,7 +37,7 @@ import rx.subjects.PublishSubject;
  * Created by Gavriil Sitnikov on 04/10/2015.
  * TODO
  */
-public class Storable<TKey, TObject, TStoreObject> {
+public class Storeable<TKey, TObject, TStoreObject> {
 
     @NonNull
     private final String name;
@@ -85,16 +85,16 @@ public class Storable<TKey, TObject, TStoreObject> {
     private CachedValue<TObject> cachedValue;
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    protected Storable(@NonNull final String name,
-                       @NonNull final TKey key,
-                       @NonNull final Class<TObject> objectClass,
-                       @NonNull final Class<TStoreObject> storeObjectClass,
-                       @NonNull final Store<TKey, TStoreObject> store,
-                       @NonNull final Converter<TObject, TStoreObject> converter,
-                       final boolean cloneOnGet,
-                       @Nullable final Migration<TKey> migration,
-                       @Nullable final Validator<TObject> validator,
-                       @Nullable final TObject defaultValue) {
+    protected Storeable(@NonNull final String name,
+                        @NonNull final TKey key,
+                        @NonNull final Class<TObject> objectClass,
+                        @NonNull final Class<TStoreObject> storeObjectClass,
+                        @NonNull final Store<TKey, TStoreObject> store,
+                        @NonNull final Converter<TObject, TStoreObject> converter,
+                        final boolean cloneOnGet,
+                        @Nullable final Migration<TKey> migration,
+                        @Nullable final Validator<TObject> validator,
+                        @Nullable final TObject defaultValue) {
         this.name = name;
         this.key = key;
         this.objectClass = objectClass;

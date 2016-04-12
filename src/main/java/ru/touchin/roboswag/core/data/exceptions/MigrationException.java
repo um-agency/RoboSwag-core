@@ -17,7 +17,7 @@
  *
  */
 
-package ru.touchin.roboswag.core.data.storable.exceptions;
+package ru.touchin.roboswag.core.data.exceptions;
 
 import android.support.annotation.NonNull;
 
