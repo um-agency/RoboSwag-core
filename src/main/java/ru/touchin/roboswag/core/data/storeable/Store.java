@@ -17,7 +17,7 @@
  *
  */
 
-package ru.touchin.roboswag.core.data.storable;
+package ru.touchin.roboswag.core.data.storeable;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
