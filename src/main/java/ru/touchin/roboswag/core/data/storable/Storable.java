@@ -252,6 +252,7 @@ public class Storable<TKey, TObject, TStoreObject> {
         setObservable(value).subscribe(Actions.empty(), Lc::assertion);
     }
 
+    @NonNull
     public Observable<?> setObservable(@Nullable final TObject value) {
         return Observable.create(subscriber -> {
             try {
