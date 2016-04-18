@@ -17,7 +17,7 @@
  *
  */
 
-package ru.touchin.roboswag.core.data.storeable;
+package ru.touchin.roboswag.core.data.storable;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -37,7 +37,7 @@ import rx.subjects.PublishSubject;
  * Created by Gavriil Sitnikov on 04/10/2015.
  * TODO
  */
-public class Storeable<TKey, TObject, TStoreObject> {
+public class Storable<TKey, TObject, TStoreObject> {
 
     @NonNull
     private final String name;
@@ -85,16 +85,16 @@ public class Storeable<TKey, TObject, TStoreObject> {
     private CachedValue<TObject> cachedValue;
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
-    protected Storeable(@NonNull final String name,
-                        @NonNull final TKey key,
-                        @NonNull final Class<TObject> objectClass,
-                        @NonNull final Class<TStoreObject> storeObjectClass,
-                        @NonNull final Store<TKey, TStoreObject> store,
-                        @NonNull final Converter<TObject, TStoreObject> converter,
-                        final boolean cloneOnGet,
-                        @Nullable final Migration<TKey> migration,
-                        @Nullable final Validator<TObject> validator,
-                        @Nullable final TObject defaultValue) {
+    protected Storable(@NonNull final String name,
+                       @NonNull final TKey key,
+                       @NonNull final Class<TObject> objectClass,
+                       @NonNull final Class<TStoreObject> storeObjectClass,
+                       @NonNull final Store<TKey, TStoreObject> store,
+                       @NonNull final Converter<TObject, TStoreObject> converter,
+                       final boolean cloneOnGet,
+                       @Nullable final Migration<TKey> migration,
+                       @Nullable final Validator<TObject> validator,
+                       @Nullable final TObject defaultValue) {
         this.name = name;
         this.key = key;
         this.objectClass = objectClass;
