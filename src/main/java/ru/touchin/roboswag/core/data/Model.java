@@ -19,6 +19,7 @@
 
 package ru.touchin.roboswag.core.data;
 
+import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
 
 import java.util.List;
@@ -41,6 +42,7 @@ public abstract class Model {
         }
     }
 
+    @CallSuper
     public void validate() throws ValidationException {
         //do nothing
     }
