@@ -17,27 +17,18 @@
  *
  */
 
-package ru.touchin.roboswag.core.data.storeable;
+package ru.touchin.roboswag.core.data.storable;
 
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import ru.touchin.roboswag.core.data.exceptions.ConversionException;
+import ru.touchin.roboswag.core.data.exceptions.ValidationException;
 
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.
  * TODO: fill description
  */
-public interface Converter<TObject, TStoreObject> {
+public interface Validator<T> {
 
-    @Nullable
-    TStoreObject toStoreObject(@NonNull Class<TObject> objectClass,
-                               @NonNull Class<TStoreObject> storeObjectClass,
-                               @Nullable TObject object) throws ConversionException;
-
-    @Nullable
-    TObject toObject(@NonNull Class<TObject> objectClass,
-                     @NonNull Class<TStoreObject> storeObjectClass,
-                     @Nullable TStoreObject storeObject) throws ConversionException;
+    void validate(@Nullable T value) throws ValidationException;
 
 }
