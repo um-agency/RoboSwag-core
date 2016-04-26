@@ -38,7 +38,8 @@ public class ConsoleLogProcessor implements LogProcessor {
     }
 
     private void logMessage(final int logLevel, @NonNull final String tag, @NonNull final String message, @Nullable final Throwable throwable) {
-        final String messageToLog = message + (throwable != null ? '\n' + Log.getStackTraceString(throwable) : "");
+        final String messageToLog = (message + (throwable != null ? '\n' + Log.getStackTraceString(throwable) : ""))
+                .replace("\r\n", "\n").replace("\0", "");
         for (int i = 0, length = messageToLog.length(); i < length; i++) {
             int newline = messageToLog.indexOf('\n', i);
             newline = newline != -1 ? newline : length;
