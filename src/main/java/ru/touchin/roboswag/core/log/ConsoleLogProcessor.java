@@ -20,48 +20,35 @@
 package ru.touchin.roboswag.core.log;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 public class ConsoleLogProcessor implements LogProcessor {
 
+    private static final int MAX_LOG_LENGTH = 4000;
+
     @Override
-    public void processLogMessage(final int logLevel, final String tag, final String message) {
-        switch (logLevel) {
-            case Log.DEBUG:
-                Log.d(tag, message);
-                break;
-            case Log.INFO:
-                Log.i(tag, message);
-                break;
-            case Log.WARN:
-                Log.w(tag, message);
-                break;
-            case Log.ERROR:
-            case Log.ASSERT:
-            default:
-                Log.e(tag, message);
-                break;
-        }
+    public void processLogMessage(final int logLevel, @NonNull final String tag, @NonNull final String message) {
+        logMessage(logLevel, tag, message, null);
     }
 
     @Override
-    public void processLogMessage(final int logLevel, final String tag, final String message, @NonNull final Throwable ex) {
-        switch (logLevel) {
-            case Log.DEBUG:
-                Log.d(tag, message, ex);
-                break;
-            case Log.INFO:
-                Log.i(tag, message, ex);
-                break;
-            case Log.WARN:
-                Log.w(tag, message, ex);
-                break;
-            case Log.ERROR:
-            case Log.ASSERT:
-                Log.e(tag, message, ex);
-                break;
-            default:
-                throw new IllegalStateException("Unsupported log level: " + logLevel);
+    public void processLogMessage(final int logLevel, @NonNull final String tag, @NonNull final String message, @NonNull final Throwable throwable) {
+        logMessage(logLevel, tag, message, throwable);
+    }
+
+    private void logMessage(final int logLevel, @NonNull final String tag, @NonNull final String message, @Nullable final Throwable throwable) {
+        final String messageToLog = message + (throwable != null ? '\n' + Log.getStackTraceString(throwable) : "");
+        for (int i = 0, length = messageToLog.length(); i < length; i++) {
+            int newline = messageToLog.indexOf('\n', i);
+            newline = newline != -1 ? newline : length;
+            do {
+                int end = Math.min(newline, i + MAX_LOG_LENGTH);
+                Log.println(logLevel, tag, messageToLog.substring(i, end));
+                i = end;
+            } while (i < newline);
         }
     }
+
+
 }

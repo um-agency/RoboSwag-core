@@ -24,12 +24,12 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
-import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
-import ru.touchin.roboswag.core.utils.ThreadLocalValue;
-
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Locale;
+
+import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
+import ru.touchin.roboswag.core.utils.ThreadLocalValue;
 
 public final class LcHelper {
 
@@ -90,7 +90,7 @@ public final class LcHelper {
 
             final String formattedMessage;
             try {
-                formattedMessage = String.format(message, args);
+                formattedMessage = args.length > 0 ? String.format(message, args) : message;
             } catch (final Throwable exception) {
                 Lc.assertion(exception);
                 return;

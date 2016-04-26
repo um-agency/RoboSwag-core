@@ -24,9 +24,9 @@ import android.support.annotation.NonNull;
 public interface LogProcessor {
 
     /* Processes log message (e.g. log it in Console or log it in Crashlytics) */
-    void processLogMessage(int logLevel, String tag, String message);
+    void processLogMessage(int logLevel, @NonNull String tag, @NonNull String message);
 
     /* Processes log message with exception (e.g. log it in Console or log it in Crashlytics) */
-    void processLogMessage(int logLevel, String tag, String message, @NonNull Throwable ex);
+    void processLogMessage(int logLevel, @NonNull String tag, @NonNull String message, @NonNull Throwable ex);
 
 }
