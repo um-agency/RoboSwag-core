@@ -25,9 +25,12 @@ import android.support.annotation.Nullable;
 import ru.touchin.roboswag.core.data.exceptions.ConversionException;
 import ru.touchin.roboswag.core.data.exceptions.MigrationException;
 import ru.touchin.roboswag.core.data.exceptions.StoreException;
-import ru.touchin.roboswag.core.data.exceptions.ValidationException;
+import ru.touchin.roboswag.core.data.storable.concrete.MigratableStorable;
+import ru.touchin.roboswag.core.data.storable.concrete.NonNullStorable;
+import ru.touchin.roboswag.core.data.storable.concrete.SafeStorable;
 import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.utils.ObjectUtils;
+import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 import rx.Observable;
 import rx.functions.Actions;
 import rx.schedulers.Schedulers;
@@ -39,8 +42,6 @@ import rx.subjects.PublishSubject;
  */
 public class Storable<TKey, TObject, TStoreObject> {
 
-    @NonNull
-    private final String name;
     @NonNull
     private final TKey key;
     @NonNull
@@ -54,8 +55,6 @@ public class Storable<TKey, TObject, TStoreObject> {
     private final boolean cloneOnGet;
     @Nullable
     private final Migration<TKey> migration;
-    @Nullable
-    private final Validator<TObject> validator;
     @Nullable
     private final TObject defaultValue;
 
@@ -84,18 +83,14 @@ public class Storable<TKey, TObject, TStoreObject> {
     @Nullable
     private CachedValue<TObject> cachedValue;
 
-    @SuppressWarnings("PMD.ExcessiveParameterList")
-    protected Storable(@NonNull final String name,
-                       @NonNull final TKey key,
+    protected Storable(@NonNull final TKey key,
                        @NonNull final Class<TObject> objectClass,
                        @NonNull final Class<TStoreObject> storeObjectClass,
                        @NonNull final Store<TKey, TStoreObject> store,
                        @NonNull final Converter<TObject, TStoreObject> converter,
                        final boolean cloneOnGet,
                        @Nullable final Migration<TKey> migration,
-                       @Nullable final Validator<TObject> validator,
                        @Nullable final TObject defaultValue) {
-        this.name = name;
         this.key = key;
         this.objectClass = objectClass;
         this.storeObjectClass = storeObjectClass;
@@ -103,7 +98,6 @@ public class Storable<TKey, TObject, TStoreObject> {
         this.converter = converter;
         this.cloneOnGet = cloneOnGet;
         this.migration = migration;
-        this.validator = validator;
         this.defaultValue = defaultValue;
 
         /*TODO
@@ -114,11 +108,6 @@ public class Storable<TKey, TObject, TStoreObject> {
                 Log.w(LOG_TAG, Log.getStackTraceString(throwable));
             }
         }*/
-    }
-
-    @NonNull
-    public String getName() {
-        return name;
     }
 
     @NonNull
@@ -139,11 +128,6 @@ public class Storable<TKey, TObject, TStoreObject> {
     @Nullable
     public TObject getDefaultValue() {
         return defaultValue;
-    }
-
-    @Nullable
-    public Validator<TObject> getValidator() {
-        return validator;
     }
 
     @NonNull
@@ -214,12 +198,8 @@ public class Storable<TKey, TObject, TStoreObject> {
     }
 
     public void set(@Nullable final TObject value)
-            throws ValidationException, ConversionException, StoreException, MigrationException {
+            throws ConversionException, StoreException, MigrationException {
         synchronized (this) {
-            if (validator != null) {
-                validator.validate(value);
-            }
-
             TObject oldValue = null;
             if (!cloneOnGet && cachedValue != null) {
                 oldValue = cachedValue.value;
@@ -281,6 +261,106 @@ public class Storable<TKey, TObject, TStoreObject> {
 
         public CachedValue(@Nullable final T value) {
             this.value = value;
+        }
+
+    }
+
+    public static class Builder<TKey, TObject, TStoreObject> {
+
+        @NonNull
+        protected final TKey key;
+        @NonNull
+        protected final Class<TObject> objectClass;
+        @Nullable
+        protected Class<TStoreObject> storeObjectClass;
+        @Nullable
+        protected Store<TKey, TStoreObject> store;
+        @Nullable
+        protected Converter<TObject, TStoreObject> converter;
+        protected boolean cloneOnGet;
+        @Nullable
+        protected Migration<TKey> migration;
+        @Nullable
+        protected TObject defaultValue;
+
+        public Builder(@NonNull final TKey key,
+                       @NonNull final Class<TObject> objectClass,
+                       final boolean cloneOnGet) {
+            this(key, objectClass, null, null, null, cloneOnGet, null, null);
+        }
+
+        public Builder(@NonNull final Builder<TKey, TObject, TStoreObject> sourceBuilder) {
+            this(sourceBuilder.key, sourceBuilder.objectClass, sourceBuilder.storeObjectClass,
+                    sourceBuilder.store, sourceBuilder.converter, sourceBuilder.cloneOnGet,
+                    sourceBuilder.migration, sourceBuilder.defaultValue);
+        }
+
+        private Builder(@NonNull final TKey key,
+                        @NonNull final Class<TObject> objectClass,
+                        @Nullable final Class<TStoreObject> storeObjectClass,
+                        @Nullable final Store<TKey, TStoreObject> store,
+                        @Nullable final Converter<TObject, TStoreObject> converter,
+                        final boolean cloneOnGet,
+                        @Nullable final Migration<TKey> migration,
+                        @Nullable final TObject defaultValue) {
+            this.key = key;
+            this.objectClass = objectClass;
+            this.storeObjectClass = storeObjectClass;
+            this.store = store;
+            this.converter = converter;
+            this.cloneOnGet = cloneOnGet;
+            this.migration = migration;
+            this.defaultValue = defaultValue;
+        }
+
+        @Nullable
+        public Migration<TKey> getMigration() {
+            return migration;
+        }
+
+        @NonNull
+        public MigratableStorable.Builder<TKey, TObject, TStoreObject> setMigration(@NonNull final Migration<TKey> migration) {
+            this.migration = migration;
+            return new MigratableStorable.Builder<>(this);
+        }
+
+        @Nullable
+        public TObject getDefaultValue() {
+            return defaultValue;
+        }
+
+        @NonNull
+        public NonNullStorable.Builder<TKey, TObject, TStoreObject> setDefaultValue(@NonNull final TObject defaultValue) {
+            this.defaultValue = defaultValue;
+            return new NonNullStorable.Builder<>(this);
+        }
+
+        @NonNull
+        public Builder<TKey, TObject, TStoreObject> setStore(@NonNull final Class<TStoreObject> storeObjectClass,
+                                                             @NonNull final Store<TKey, TStoreObject> store,
+                                                             @NonNull final Converter<TObject, TStoreObject> converter) {
+            this.storeObjectClass = storeObjectClass;
+            this.store = store;
+            this.converter = converter;
+            return this;
+        }
+
+        @NonNull
+        public SafeStorable.Builder<TKey, TObject, TStoreObject> setSafeStore(@NonNull final Class<TStoreObject> storeObjectClass,
+                                                                              @NonNull final SafeStore<TKey, TStoreObject> store,
+                                                                              @NonNull final SafeConverter<TObject, TStoreObject> converter) {
+            this.storeObjectClass = storeObjectClass;
+            this.store = store;
+            this.converter = converter;
+            return new SafeStorable.Builder<>(this);
+        }
+
+        @NonNull
+        public Storable<TKey, TObject, TStoreObject> build() {
+            if (storeObjectClass == null || store == null || converter == null) {
+                throw new ShouldNotHappenException();
+            }
+            return new Storable<>(key, objectClass, storeObjectClass, store, converter, cloneOnGet, migration, defaultValue);
         }
 
     }
