@@ -265,44 +265,44 @@ public class Storable<TKey, TObject, TStoreObject> {
 
     }
 
-    public static class Builder<TKey, TObject, TStoreObject> {
+    protected abstract static class BaseBuilder<TKey, TObject, TStoreObject> {
 
         @NonNull
         protected final TKey key;
         @NonNull
         protected final Class<TObject> objectClass;
+        protected final boolean cloneOnGet;
         @Nullable
-        protected Class<TStoreObject> storeObjectClass;
+        private Class<TStoreObject> storeObjectClass;
         @Nullable
-        protected Store<TKey, TStoreObject> store;
+        private Store<TKey, TStoreObject> store;
         @Nullable
-        protected Converter<TObject, TStoreObject> converter;
-        protected boolean cloneOnGet;
+        private Converter<TObject, TStoreObject> converter;
         @Nullable
-        protected Migration<TKey> migration;
+        private Migration<TKey> migration;
         @Nullable
-        protected TObject defaultValue;
+        private TObject defaultValue;
 
-        public Builder(@NonNull final TKey key,
-                       @NonNull final Class<TObject> objectClass,
-                       final boolean cloneOnGet) {
+        public BaseBuilder(@NonNull final TKey key,
+                           @NonNull final Class<TObject> objectClass,
+                           final boolean cloneOnGet) {
             this(key, objectClass, null, null, null, cloneOnGet, null, null);
         }
 
-        public Builder(@NonNull final Builder<TKey, TObject, TStoreObject> sourceBuilder) {
+        public BaseBuilder(@NonNull final BaseBuilder<TKey, TObject, TStoreObject> sourceBuilder) {
             this(sourceBuilder.key, sourceBuilder.objectClass, sourceBuilder.storeObjectClass,
                     sourceBuilder.store, sourceBuilder.converter, sourceBuilder.cloneOnGet,
                     sourceBuilder.migration, sourceBuilder.defaultValue);
         }
 
-        private Builder(@NonNull final TKey key,
-                        @NonNull final Class<TObject> objectClass,
-                        @Nullable final Class<TStoreObject> storeObjectClass,
-                        @Nullable final Store<TKey, TStoreObject> store,
-                        @Nullable final Converter<TObject, TStoreObject> converter,
-                        final boolean cloneOnGet,
-                        @Nullable final Migration<TKey> migration,
-                        @Nullable final TObject defaultValue) {
+        private BaseBuilder(@NonNull final TKey key,
+                            @NonNull final Class<TObject> objectClass,
+                            @Nullable final Class<TStoreObject> storeObjectClass,
+                            @Nullable final Store<TKey, TStoreObject> store,
+                            @Nullable final Converter<TObject, TStoreObject> converter,
+                            final boolean cloneOnGet,
+                            @Nullable final Migration<TKey> migration,
+                            @Nullable final TObject defaultValue) {
             this.key = key;
             this.objectClass = objectClass;
             this.storeObjectClass = storeObjectClass;
@@ -313,15 +313,40 @@ public class Storable<TKey, TObject, TStoreObject> {
             this.defaultValue = defaultValue;
         }
 
+        protected void setMigrationInternal(@NonNull final Migration<TKey> migration) {
+            this.migration = migration;
+        }
+
+        protected void setStoreInternal(@NonNull final Class<TStoreObject> storeObjectClass,
+                                        @NonNull final Store<TKey, TStoreObject> store,
+                                        @NonNull final Converter<TObject, TStoreObject> converter) {
+            this.storeObjectClass = storeObjectClass;
+            this.store = store;
+            this.converter = converter;
+        }
+
+        @Nullable
+        public Class<TStoreObject> getStoreObjectClass() {
+            return storeObjectClass;
+        }
+
+        @Nullable
+        public Store<TKey, TStoreObject> getStore() {
+            return store;
+        }
+
+        @Nullable
+        public Converter<TObject, TStoreObject> getConverter() {
+            return converter;
+        }
+
         @Nullable
         public Migration<TKey> getMigration() {
             return migration;
         }
 
-        @NonNull
-        public MigratableStorable.Builder<TKey, TObject, TStoreObject> setMigration(@NonNull final Migration<TKey> migration) {
-            this.migration = migration;
-            return new MigratableStorable.Builder<>(this);
+        protected void setDefaultValueInternal(@NonNull final TObject defaultValue) {
+            this.defaultValue = defaultValue;
         }
 
         @Nullable
@@ -329,9 +354,25 @@ public class Storable<TKey, TObject, TStoreObject> {
             return defaultValue;
         }
 
+    }
+
+    public static class Builder<TKey, TObject, TStoreObject> extends BaseBuilder<TKey, TObject, TStoreObject> {
+
+        public Builder(@NonNull final TKey key,
+                       @NonNull final Class<TObject> objectClass,
+                       final boolean cloneOnGet) {
+            super(key, objectClass, cloneOnGet);
+        }
+
+        @NonNull
+        public MigratableStorable.Builder<TKey, TObject, TStoreObject> setMigration(@NonNull final Migration<TKey> migration) {
+            setMigrationInternal(migration);
+            return new MigratableStorable.Builder<>(this);
+        }
+
         @NonNull
         public NonNullStorable.Builder<TKey, TObject, TStoreObject> setDefaultValue(@NonNull final TObject defaultValue) {
-            this.defaultValue = defaultValue;
+            setDefaultValueInternal(defaultValue);
             return new NonNullStorable.Builder<>(this);
         }
 
@@ -339,9 +380,7 @@ public class Storable<TKey, TObject, TStoreObject> {
         public Builder<TKey, TObject, TStoreObject> setStore(@NonNull final Class<TStoreObject> storeObjectClass,
                                                              @NonNull final Store<TKey, TStoreObject> store,
                                                              @NonNull final Converter<TObject, TStoreObject> converter) {
-            this.storeObjectClass = storeObjectClass;
-            this.store = store;
-            this.converter = converter;
+            setStoreInternal(storeObjectClass, store, converter);
             return this;
         }
 
@@ -349,18 +388,16 @@ public class Storable<TKey, TObject, TStoreObject> {
         public SafeStorable.Builder<TKey, TObject, TStoreObject> setSafeStore(@NonNull final Class<TStoreObject> storeObjectClass,
                                                                               @NonNull final SafeStore<TKey, TStoreObject> store,
                                                                               @NonNull final SafeConverter<TObject, TStoreObject> converter) {
-            this.storeObjectClass = storeObjectClass;
-            this.store = store;
-            this.converter = converter;
+            setStoreInternal(storeObjectClass, store, converter);
             return new SafeStorable.Builder<>(this);
         }
 
         @NonNull
         public Storable<TKey, TObject, TStoreObject> build() {
-            if (storeObjectClass == null || store == null || converter == null) {
+            if (getStoreObjectClass() == null || getStore() == null || getConverter() == null) {
                 throw new ShouldNotHappenException();
             }
-            return new Storable<>(key, objectClass, storeObjectClass, store, converter, cloneOnGet, migration, defaultValue);
+            return new Storable<>(key, objectClass, getStoreObjectClass(), getStore(), getConverter(), cloneOnGet, getMigration(), getDefaultValue());
         }
 
     }

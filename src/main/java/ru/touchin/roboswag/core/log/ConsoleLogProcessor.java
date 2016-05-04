@@ -40,11 +40,12 @@ public class ConsoleLogProcessor implements LogProcessor {
     private void logMessage(final int logLevel, @NonNull final String tag, @NonNull final String message, @Nullable final Throwable throwable) {
         final String messageToLog = (message + (throwable != null ? '\n' + Log.getStackTraceString(throwable) : ""))
                 .replace("\r\n", "\n").replace("\0", "");
-        for (int i = 0, length = messageToLog.length(); i < length; i++) {
+        final int length = messageToLog.length();
+        for (int i = 0; i < length; i++) {
             int newline = messageToLog.indexOf('\n', i);
             newline = newline != -1 ? newline : length;
             do {
-                int end = Math.min(newline, i + MAX_LOG_LENGTH);
+                final int end = Math.min(newline, i + MAX_LOG_LENGTH);
                 Log.println(logLevel, tag, messageToLog.substring(i, end));
                 i = end;
             } while (i < newline);

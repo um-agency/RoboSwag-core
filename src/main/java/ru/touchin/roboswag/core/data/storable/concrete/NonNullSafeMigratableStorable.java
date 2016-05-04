@@ -1,3 +1,22 @@
+/*
+ *  Copyright (c) 2015 RoboSwag (Gavriil Sitnikov, Vsevolod Ivanov)
+ *
+ *  This file is part of RoboSwag library.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
 package ru.touchin.roboswag.core.data.storable.concrete;
 
 import android.support.annotation.NonNull;
@@ -26,7 +45,7 @@ public class NonNullSafeMigratableStorable<TKey, TObject, TStoreObject>
         super(key, objectClass, storeObjectClass, store, converter, cloneOnGet, migration, defaultValue);
     }
 
-    public static class Builder<TKey, TObject, TStoreObject> extends Storable.Builder<TKey, TObject, TStoreObject> {
+    public static class Builder<TKey, TObject, TStoreObject> extends Storable.BaseBuilder<TKey, TObject, TStoreObject> {
 
         public Builder(@NonNull final NonNullMigratableStorable.Builder<TKey, TObject, TStoreObject> sourceBuilder) {
             super(sourceBuilder);
@@ -61,13 +80,12 @@ public class NonNullSafeMigratableStorable<TKey, TObject, TStoreObject>
         }
 
         @NonNull
-        @Override
         public NonNullSafeMigratableStorable<TKey, TObject, TStoreObject> build() {
-            if (storeObjectClass == null || !(store instanceof SafeStore) || !(converter instanceof SafeConverter)) {
+            if (getStoreObjectClass() == null || !(getStore() instanceof SafeStore) || !(getConverter() instanceof SafeConverter)) {
                 throw new ShouldNotHappenException();
             }
-            return new NonNullSafeMigratableStorable<>(key, objectClass, storeObjectClass,
-                    (SafeStore<TKey, TStoreObject>) store, (SafeConverter<TObject, TStoreObject>) converter,
+            return new NonNullSafeMigratableStorable<>(key, objectClass, getStoreObjectClass(),
+                    (SafeStore<TKey, TStoreObject>) getStore(), (SafeConverter<TObject, TStoreObject>) getConverter(),
                     cloneOnGet, getMigration(), getDefaultValue());
         }
 
