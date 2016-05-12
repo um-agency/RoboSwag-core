@@ -34,6 +34,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import rx.functions.Func0;
+
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.
  * TODO: fill description
@@ -42,6 +44,15 @@ public final class ObjectUtils {
 
     private static final List<Class> IMMUTABLE_COLLECTIONS_TYPES
             = Arrays.asList(AbstractList.class, AbstractMap.class, AbstractSet.class);
+
+    @NonNull
+    public static <T> T getNonNull(@NonNull final Func0<T> getter) {
+        final T result = getter.call();
+        if (result == null) {
+            throw new ShouldNotHappenException();
+        }
+        return result;
+    }
 
     // copy of Arrays.deepEqualsElements
     @SuppressWarnings({"PMD.NPathComplexity", "PMD.StdCyclomaticComplexity",

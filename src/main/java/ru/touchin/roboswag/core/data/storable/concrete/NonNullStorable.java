@@ -20,7 +20,6 @@
 package ru.touchin.roboswag.core.data.storable.concrete;
 
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import ru.touchin.roboswag.core.data.exceptions.ConversionException;
 import ru.touchin.roboswag.core.data.exceptions.MigrationException;
@@ -31,7 +30,7 @@ import ru.touchin.roboswag.core.data.storable.SafeConverter;
 import ru.touchin.roboswag.core.data.storable.SafeStore;
 import ru.touchin.roboswag.core.data.storable.Storable;
 import ru.touchin.roboswag.core.data.storable.Store;
-import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
+import ru.touchin.roboswag.core.utils.ObjectUtils;
 
 /**
  * Created by Gavriil Sitnikov on 03/05/16.
@@ -39,25 +38,14 @@ import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
  */
 public class NonNullStorable<TKey, TObject, TStoreObject> extends Storable<TKey, TObject, TStoreObject> {
 
-    protected NonNullStorable(@NonNull final TKey key,
-                              @NonNull final Class<TObject> objectClass,
-                              @NonNull final Class<TStoreObject> storeObjectClass,
-                              @NonNull final Store<TKey, TStoreObject> store,
-                              @NonNull final Converter<TObject, TStoreObject> converter,
-                              final boolean cloneOnGet,
-                              @Nullable final Migration<TKey> migration,
-                              @NonNull final TObject defaultValue) {
-        super(key, objectClass, storeObjectClass, store, converter, cloneOnGet, migration, defaultValue);
+    protected NonNullStorable(@NonNull final BaseBuilder<TKey, TObject, TStoreObject> builder) {
+        super(builder);
     }
 
     @NonNull
     @Override
     public TObject getDefaultValue() {
-        final TObject defaultValue = super.getDefaultValue();
-        if (defaultValue == null) {
-            throw new ShouldNotHappenException();
-        }
-        return defaultValue;
+        return ObjectUtils.getNonNull(super::getDefaultValue);
     }
 
     @NonNull
@@ -67,7 +55,9 @@ public class NonNullStorable<TKey, TObject, TStoreObject> extends Storable<TKey,
         return result != null ? result : getDefaultValue();
     }
 
-    public static class Builder<TKey, TObject, TStoreObject> extends Storable.BaseBuilder<TKey, TObject, TStoreObject> {
+    @SuppressWarnings("CPD-START")
+    //CPD: yes builders have copy-pasted code
+    public static class Builder<TKey, TObject, TStoreObject> extends BaseBuilder<TKey, TObject, TStoreObject> {
 
         public Builder(@NonNull final Storable.Builder<TKey, TObject, TStoreObject> sourceBuilder) {
             super(sourceBuilder);
@@ -76,11 +66,7 @@ public class NonNullStorable<TKey, TObject, TStoreObject> extends Storable<TKey,
         @NonNull
         @Override
         public TObject getDefaultValue() {
-            final TObject result = super.getDefaultValue();
-            if (result == null) {
-                throw new ShouldNotHappenException();
-            }
-            return result;
+            return ObjectUtils.getNonNull(super::getDefaultValue);
         }
 
         @NonNull
@@ -107,11 +93,7 @@ public class NonNullStorable<TKey, TObject, TStoreObject> extends Storable<TKey,
 
         @NonNull
         public NonNullStorable<TKey, TObject, TStoreObject> build() {
-            if (getStoreObjectClass() == null || getStore() == null || getConverter() == null) {
-                throw new ShouldNotHappenException();
-            }
-            return new NonNullStorable<>(key, objectClass, getStoreObjectClass(), getStore(), getConverter(),
-                    cloneOnGet, getMigration(), getDefaultValue());
+            return new NonNullStorable<>(this);
         }
 
     }

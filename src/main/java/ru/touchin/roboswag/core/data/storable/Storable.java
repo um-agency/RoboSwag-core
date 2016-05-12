@@ -83,22 +83,18 @@ public class Storable<TKey, TObject, TStoreObject> {
     @Nullable
     private CachedValue<TObject> cachedValue;
 
-    protected Storable(@NonNull final TKey key,
-                       @NonNull final Class<TObject> objectClass,
-                       @NonNull final Class<TStoreObject> storeObjectClass,
-                       @NonNull final Store<TKey, TStoreObject> store,
-                       @NonNull final Converter<TObject, TStoreObject> converter,
-                       final boolean cloneOnGet,
-                       @Nullable final Migration<TKey> migration,
-                       @Nullable final TObject defaultValue) {
-        this.key = key;
-        this.objectClass = objectClass;
-        this.storeObjectClass = storeObjectClass;
-        this.store = store;
-        this.converter = converter;
-        this.cloneOnGet = cloneOnGet;
-        this.migration = migration;
-        this.defaultValue = defaultValue;
+    protected Storable(@NonNull final BaseBuilder<TKey, TObject, TStoreObject> builder) {
+        this.key = builder.key;
+        this.objectClass = builder.objectClass;
+        if (builder.getStoreObjectClass() == null || builder.getStore() == null || builder.getConverter() == null) {
+            throw new ShouldNotHappenException();
+        }
+        this.storeObjectClass = builder.getStoreObjectClass();
+        this.store = builder.getStore();
+        this.converter = builder.getConverter();
+        this.cloneOnGet = builder.cloneOnGet;
+        this.migration = builder.getMigration();
+        this.defaultValue = builder.getDefaultValue();
 
         /*TODO
         if (isInDebugMode && !cloneOnGet) {
@@ -265,7 +261,7 @@ public class Storable<TKey, TObject, TStoreObject> {
 
     }
 
-    protected abstract static class BaseBuilder<TKey, TObject, TStoreObject> {
+    protected static class BaseBuilder<TKey, TObject, TStoreObject> {
 
         @NonNull
         protected final TKey key;
@@ -394,10 +390,7 @@ public class Storable<TKey, TObject, TStoreObject> {
 
         @NonNull
         public Storable<TKey, TObject, TStoreObject> build() {
-            if (getStoreObjectClass() == null || getStore() == null || getConverter() == null) {
-                throw new ShouldNotHappenException();
-            }
-            return new Storable<>(key, objectClass, getStoreObjectClass(), getStore(), getConverter(), cloneOnGet, getMigration(), getDefaultValue());
+            return new Storable<>(this);
         }
 
     }

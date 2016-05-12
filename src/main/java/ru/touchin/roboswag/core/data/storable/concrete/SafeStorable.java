@@ -33,18 +33,13 @@ import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
  * Created by Gavriil Sitnikov on 03/05/16.
  * TODO: description
  */
+@SuppressWarnings("CPD-START")
+//TODO: ?
 public class SafeStorable<TKey, TObject, TStoreObject>
         extends Storable<TKey, TObject, TStoreObject> {
 
-    protected SafeStorable(@NonNull final TKey key,
-                           @NonNull final Class<TObject> objectClass,
-                           @NonNull final Class<TStoreObject> storeObjectClass,
-                           @NonNull final SafeStore<TKey, TStoreObject> store,
-                           @NonNull final SafeConverter<TObject, TStoreObject> converter,
-                           final boolean cloneOnGet,
-                           @Nullable final Migration<TKey> migration,
-                           @Nullable final TObject defaultValue) {
-        super(key, objectClass, storeObjectClass, store, converter, cloneOnGet, migration, defaultValue);
+    protected SafeStorable(@NonNull final BaseBuilder<TKey, TObject, TStoreObject> builder) {
+        super(builder);
     }
 
     @Nullable
@@ -67,7 +62,9 @@ public class SafeStorable<TKey, TObject, TStoreObject>
         }
     }
 
-    public static class Builder<TKey, TObject, TStoreObject> extends Storable.BaseBuilder<TKey, TObject, TStoreObject> {
+    @SuppressWarnings("CPD-START")
+    //CPD: yes builders have copy-pasted code
+    public static class Builder<TKey, TObject, TStoreObject> extends BaseBuilder<TKey, TObject, TStoreObject> {
 
         public Builder(@NonNull final Storable.Builder<TKey, TObject, TStoreObject> sourceBuilder) {
             super(sourceBuilder);
@@ -87,12 +84,10 @@ public class SafeStorable<TKey, TObject, TStoreObject>
 
         @NonNull
         public SafeStorable<TKey, TObject, TStoreObject> build() {
-            if (getStoreObjectClass() == null || !(getStore() instanceof SafeStore) || !(getConverter() instanceof SafeConverter)) {
+            if (!(getStore() instanceof SafeStore) || !(getConverter() instanceof SafeConverter)) {
                 throw new ShouldNotHappenException();
             }
-            return new SafeStorable<>(key, objectClass, getStoreObjectClass(),
-                    (SafeStore<TKey, TStoreObject>) getStore(), (SafeConverter<TObject, TStoreObject>) getConverter(),
-                    cloneOnGet, getMigration(), getDefaultValue());
+            return new SafeStorable<>(this);
         }
 
     }

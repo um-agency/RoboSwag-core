@@ -24,7 +24,7 @@ import android.support.annotation.NonNull;
 import ru.touchin.roboswag.core.data.storable.Migration;
 import ru.touchin.roboswag.core.data.storable.SafeConverter;
 import ru.touchin.roboswag.core.data.storable.SafeStore;
-import ru.touchin.roboswag.core.data.storable.Storable;
+import ru.touchin.roboswag.core.utils.ObjectUtils;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 
 /**
@@ -34,18 +34,13 @@ import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 public class NonNullSafeMigratableStorable<TKey, TObject, TStoreObject>
         extends NonNullSafeStorable<TKey, TObject, TStoreObject> {
 
-    protected NonNullSafeMigratableStorable(@NonNull final TKey key,
-                                            @NonNull final Class<TObject> objectClass,
-                                            @NonNull final Class<TStoreObject> storeObjectClass,
-                                            @NonNull final SafeStore<TKey, TStoreObject> store,
-                                            @NonNull final SafeConverter<TObject, TStoreObject> converter,
-                                            final boolean cloneOnGet,
-                                            @NonNull final Migration<TKey> migration,
-                                            @NonNull final TObject defaultValue) {
-        super(key, objectClass, storeObjectClass, store, converter, cloneOnGet, migration, defaultValue);
+    protected NonNullSafeMigratableStorable(@NonNull final BaseBuilder<TKey, TObject, TStoreObject> builder) {
+        super(builder);
     }
 
-    public static class Builder<TKey, TObject, TStoreObject> extends Storable.BaseBuilder<TKey, TObject, TStoreObject> {
+    @SuppressWarnings("CPD-START")
+    //CPD: yes builders have copy-pasted code
+    public static class Builder<TKey, TObject, TStoreObject> extends BaseBuilder<TKey, TObject, TStoreObject> {
 
         public Builder(@NonNull final NonNullMigratableStorable.Builder<TKey, TObject, TStoreObject> sourceBuilder) {
             super(sourceBuilder);
@@ -62,31 +57,21 @@ public class NonNullSafeMigratableStorable<TKey, TObject, TStoreObject>
         @NonNull
         @Override
         public TObject getDefaultValue() {
-            final TObject defaultValue = super.getDefaultValue();
-            if (defaultValue == null) {
-                throw new ShouldNotHappenException();
-            }
-            return defaultValue;
+            return ObjectUtils.getNonNull(super::getDefaultValue);
         }
 
         @NonNull
         @Override
         public Migration<TKey> getMigration() {
-            final Migration<TKey> result = super.getMigration();
-            if (result == null) {
-                throw new ShouldNotHappenException();
-            }
-            return result;
+            return ObjectUtils.getNonNull(super::getMigration);
         }
 
         @NonNull
         public NonNullSafeMigratableStorable<TKey, TObject, TStoreObject> build() {
-            if (getStoreObjectClass() == null || !(getStore() instanceof SafeStore) || !(getConverter() instanceof SafeConverter)) {
+            if (!(getStore() instanceof SafeStore) || !(getConverter() instanceof SafeConverter)) {
                 throw new ShouldNotHappenException();
             }
-            return new NonNullSafeMigratableStorable<>(key, objectClass, getStoreObjectClass(),
-                    (SafeStore<TKey, TStoreObject>) getStore(), (SafeConverter<TObject, TStoreObject>) getConverter(),
-                    cloneOnGet, getMigration(), getDefaultValue());
+            return new NonNullSafeMigratableStorable<>(this);
         }
 
     }
