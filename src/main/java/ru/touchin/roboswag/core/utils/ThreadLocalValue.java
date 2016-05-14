@@ -23,6 +23,10 @@ import android.support.annotation.NonNull;
 
 import rx.functions.Func0;
 
+/**
+ * Created by Gavriil Sitnikov on 13/11/2015.
+ * Thread local value with specified creator of value per thread.
+ */
 public class ThreadLocalValue<T> extends ThreadLocal<T> {
 
     @NonNull

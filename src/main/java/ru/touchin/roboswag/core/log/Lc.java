@@ -20,73 +20,206 @@
 package ru.touchin.roboswag.core.log;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Log;
+
+import java.util.Arrays;
 
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 
 /**
  * Created by Gavriil Sitnikov on 13/11/2015.
- * TODO: fill description
+ * General logging utility of RoboSwag library.
+ * You can initialize {@link LogProcessor} to intercept log messages and make decision how to show them.
+ * Also you can specify assertions behavior to manually make application more stable in production but intercept illegal states in some
+ * third-party tool to fix them later but not crash in production.
  */
-@SuppressWarnings({"PMD.ShortClassName", "ClassNamingConvention", "StaticMethodNamingConvention"})
+@SuppressWarnings({"checkstyle:methodname", "PMD.ShortMethodName", "PMD.ShortClassName"})
+//MethodNameCheck,ShortMethodName: log methods better be 1-symbol
 public final class Lc {
 
-    /* Debug level log */
-    @SuppressWarnings({"PMD.ShortMethodName", "PMD.AvoidDuplicateLiterals", "checkstyle:methodname"})
-    public static void d(final String message, final Object... args) {
-        LcHelper.logMessage(Log.DEBUG, message, null, args);
+    public static final LcGroup GENERAL_LC_GROUP = new LcGroup("GENERAL");
+
+    private static boolean crashOnAssertions = true;
+    @NonNull
+    private static LogProcessor logProcessor = new ConsoleLogProcessor(LcLevel.ERROR);
+
+    public static final int STACK_TRACE_CODE_DEPTH;
+
+    static {
+        final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        int stackDepth;
+        for (stackDepth = 0; stackDepth < stackTrace.length; stackDepth++) {
+            if (stackTrace[stackDepth].getClassName().equals(Lc.class.getName())) {
+                break;
+            }
+        }
+        STACK_TRACE_CODE_DEPTH = stackDepth + 1;
     }
 
-    /* Debug level log with exception */
-    @SuppressWarnings({"PMD.ShortMethodName", "checkstyle:methodname"})
-    public static void d(@NonNull final Throwable ex, final String message, final Object... args) {
-        LcHelper.logMessage(Log.DEBUG, message, ex, args);
+    /**
+     * Flag to crash application or pass it to {@link LogProcessor#processLogMessage(LcGroup, LcLevel, String, String, Throwable)}
+     * on specific {@link LcGroup#assertion(Throwable)} points of code.
+     *
+     * @return True if application should crash on assertion.
+     */
+    public static boolean isCrashOnAssertions() {
+        return crashOnAssertions;
     }
 
-    /* Info level log */
-    @SuppressWarnings({"PMD.ShortMethodName", "checkstyle:methodname"})
-    public static void i(final String message, final Object... args) {
-        LcHelper.logMessage(Log.INFO, message, null, args);
+    /**
+     * Returns {@link LogProcessor} object to intercept incoming log messages (by default it returns {@link ConsoleLogProcessor}).
+     *
+     * @return Specific {@link LogProcessor}.
+     */
+    @NonNull
+    public static LogProcessor getLogProcessor() {
+        return logProcessor;
     }
 
-    /* Info level log with exception */
-    @SuppressWarnings({"PMD.ShortMethodName", "checkstyle:methodname"})
-    public static void i(@NonNull final Throwable ex, final String message, final Object... args) {
-        LcHelper.logMessage(Log.INFO, message, ex, args);
+    /**
+     * Initialize general logging behavior.
+     *
+     * @param logProcessor      {@link LogProcessor} to intercept all log messages;
+     * @param crashOnAssertions Flag to crash application
+     *                          or pass it to {@link LogProcessor#processLogMessage(LcGroup, LcLevel, String, String, Throwable)}
+     *                          on specific {@link LcGroup#assertion(Throwable)} points of code.
+     */
+    public static void initialize(@NonNull final LogProcessor logProcessor, final boolean crashOnAssertions) {
+        Lc.crashOnAssertions = crashOnAssertions;
+        Lc.logProcessor = logProcessor;
     }
 
-    /* Warning level log */
-    @SuppressWarnings({"PMD.ShortMethodName", "checkstyle:methodname"})
-    public static void w(final String message, final Object... args) {
-        LcHelper.logMessage(Log.WARN, message, null, args);
+    /**
+     * Logs debug message via {@link #GENERAL_LC_GROUP}.
+     *
+     * @param message Message or format of message to log;
+     * @param args    Arguments of formatted message.
+     */
+    public static void d(@NonNull final String message, @NonNull final Object... args) {
+        GENERAL_LC_GROUP.d(message, args);
     }
 
-    /* Warning level log with exception */
-    @SuppressWarnings({"PMD.ShortMethodName", "checkstyle:methodname"})
-    public static void w(@NonNull final Throwable ex, final String message, final Object... args) {
-        LcHelper.logMessage(Log.WARN, message, ex, args);
+    /**
+     * Logs debug message via {@link #GENERAL_LC_GROUP}.
+     *
+     * @param throwable Exception to log;
+     * @param message   Message or format of message to log;
+     * @param args      Arguments of formatted message.
+     */
+    public static void d(@NonNull final Throwable throwable, @NonNull final String message, @NonNull final Object... args) {
+        GENERAL_LC_GROUP.d(message, throwable, args);
     }
 
-    /* Error level log */
-    @SuppressWarnings({"PMD.ShortMethodName", "checkstyle:methodname"})
-    public static void e(final String message, final Object... args) {
-        LcHelper.logMessage(Log.ERROR, message, null, args);
+    /**
+     * Logs info message via {@link #GENERAL_LC_GROUP}.
+     *
+     * @param message Message or format of message to log;
+     * @param args    Arguments of formatted message.
+     */
+    public static void i(@NonNull final String message, @NonNull final Object... args) {
+        GENERAL_LC_GROUP.i(message, args);
     }
 
-    /* Error level log with exception */
-    @SuppressWarnings({"PMD.ShortMethodName", "checkstyle:methodname"})
-    public static void e(@NonNull final Throwable ex, final String message, final Object... args) {
-        LcHelper.logMessage(Log.ERROR, message, ex, args);
+    /**
+     * Logs info message via {@link #GENERAL_LC_GROUP}.
+     *
+     * @param throwable Exception to log;
+     * @param message   Message or format of message to log;
+     * @param args      Arguments of formatted message.
+     */
+    public static void i(@NonNull final Throwable throwable, @NonNull final String message, @NonNull final Object... args) {
+        GENERAL_LC_GROUP.i(message, throwable, args);
     }
 
-    /* Error level log with exception */
+    /**
+     * Logs warning message via {@link #GENERAL_LC_GROUP}.
+     *
+     * @param message Message or format of message to log;
+     * @param args    Arguments of formatted message.
+     */
+    public static void w(@NonNull final String message, @NonNull final Object... args) {
+        GENERAL_LC_GROUP.w(message, args);
+    }
+
+    /**
+     * Logs warning message via {@link #GENERAL_LC_GROUP}.
+     *
+     * @param throwable Exception to log;
+     * @param message   Message or format of message to log;
+     * @param args      Arguments of formatted message.
+     */
+    public static void w(@NonNull final Throwable throwable, @NonNull final String message, @NonNull final Object... args) {
+        GENERAL_LC_GROUP.w(message, throwable, args);
+    }
+
+    /**
+     * Logs error message via {@link #GENERAL_LC_GROUP}.
+     *
+     * @param message Message or format of message to log;
+     * @param args    Arguments of formatted message.
+     */
+    public static void e(@NonNull final String message, final Object... args) {
+        GENERAL_LC_GROUP.e(message, args);
+    }
+
+    /**
+     * Logs error message via {@link #GENERAL_LC_GROUP}.
+     *
+     * @param throwable Exception to log;
+     * @param message   Message or format of message to log;
+     * @param args      Arguments of formatted message.
+     */
+    public static void e(@NonNull final Throwable throwable, @NonNull final String message, final Object... args) {
+        GENERAL_LC_GROUP.e(message, throwable, args);
+    }
+
+    /**
+     * Processes assertion. Normally it will throw {@link ShouldNotHappenException} and crash app.
+     * If it should crash or not is specified at {@link Lc#isCrashOnAssertions()}.
+     * In some cases crash on assertions should be switched off and assertion should be processed in {@link LogProcessor}.
+     * It is useful for example to not crash but log it as handled crash in Crashlitycs in production build.
+     *
+     * @param message Message that is describing assertion.
+     */
     public static void assertion(@NonNull final String message) {
-        LcHelper.assertion(new ShouldNotHappenException(message));
+        GENERAL_LC_GROUP.assertion(message);
     }
 
-    /* Error level log with exception */
-    public static void assertion(@NonNull final Throwable ex) {
-        LcHelper.assertion(ex);
+    /**
+     * Processes assertion. Normally it will throw {@link ShouldNotHappenException} and crash app.
+     * If it should crash or not is specified at {@link Lc#isCrashOnAssertions()}.
+     * In some cases crash on assertions should be switched off and assertion should be processed in {@link LogProcessor}.
+     * It is useful for example to not crash but log it as handled crash in Crashlitycs in production build.
+     *
+     * @param throwable Exception that is describing assertion.
+     */
+    public static void assertion(@NonNull final Throwable throwable) {
+        GENERAL_LC_GROUP.assertion(throwable);
+    }
+
+    /**
+     * Returns line of code from where this method called.
+     *
+     * @param caller Object who is calling for code point;
+     * @return String represents code point.
+     */
+    @NonNull
+    public static String getCodePoint(@Nullable final Object caller) {
+        final StackTraceElement traceElement = Thread.currentThread().getStackTrace()[STACK_TRACE_CODE_DEPTH];
+        return (caller != null ? caller.getClass().getName() + '(' + caller.hashCode() + ") at " : "")
+                + traceElement.getFileName() + ':' + traceElement.getMethodName() + ':' + traceElement.getLineNumber();
+    }
+
+    /**
+     * Prints stacktrace in log with specified tag.
+     *
+     * @param tag Tag to be shown in logs.
+     */
+    public static void printStackTrace(@NonNull final String tag) {
+        final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, STACK_TRACE_CODE_DEPTH, stackTrace.length)));
     }
 
     private Lc() {

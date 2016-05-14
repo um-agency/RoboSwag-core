@@ -21,6 +21,11 @@ package ru.touchin.roboswag.core.utils;
 
 import android.support.annotation.NonNull;
 
+/**
+ * Created by Gavriil Sitnikov on 13/11/2015.
+ * Exception that should be threw when some unexpected code reached.
+ * E.g. if some value null but it is not legal or in default case in switch if all specific cases should be processed.
+ */
 public class ShouldNotHappenException extends RuntimeException {
 
     private static final long serialVersionUID = 0;

@@ -20,13 +20,42 @@
 package ru.touchin.roboswag.core.log;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
-public interface LogProcessor {
+/**
+ * Created by Gavriil Sitnikov on 13/11/2015.
+ * Abstract object to intercept log messages coming from {@link LcGroup} and {@link Lc} log methods.
+ */
+public abstract class LogProcessor {
 
-    /* Processes log message (e.g. log it in Console or log it in Crashlytics) */
-    void processLogMessage(int logLevel, @NonNull String tag, @NonNull String message);
+    @NonNull
+    private final LcLevel minLogLevel;
 
-    /* Processes log message with exception (e.g. log it in Console or log it in Crashlytics) */
-    void processLogMessage(int logLevel, @NonNull String tag, @NonNull String message, @NonNull Throwable ex);
+    public LogProcessor(@NonNull final LcLevel minLogLevel) {
+        this.minLogLevel = minLogLevel;
+    }
+
+    /**
+     * Minimum logging level.
+     * Any messages with lower priority won't be passed into {@link #processLogMessage(LcGroup, LcLevel, String, String, Throwable)}.
+     *
+     * @return Minimum log level represented by {@link LcLevel} object.
+     */
+    @NonNull
+    public LcLevel getMinLogLevel() {
+        return minLogLevel;
+    }
+
+    /**
+     * Core method to process any incoming log messages from {@link LcGroup} and {@link Lc} with level higher or equals {@link #getMinLogLevel()}.
+     *
+     * @param group     {@link LcGroup} where log message came from;
+     * @param level     {@link LcLevel} level (priority) of message;
+     * @param tag       String mark of message;
+     * @param message   Message to log;
+     * @param throwable Exception to log.
+     */
+    public abstract void processLogMessage(@NonNull final LcGroup group, @NonNull final LcLevel level,
+                                           @NonNull final String tag, @NonNull final String message, @Nullable final Throwable throwable);
 
 }
