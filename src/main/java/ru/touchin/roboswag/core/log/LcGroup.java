@@ -42,9 +42,24 @@ public class LcGroup {
 
     @NonNull
     private final String name;
+    private boolean disabled;
 
     public LcGroup(@NonNull final String name) {
         this.name = name;
+    }
+
+    /**
+     * Disables logging of this group.
+     */
+    public void disable() {
+        disabled = true;
+    }
+
+    /**
+     * Enables logging of this group.
+     */
+    public void enable() {
+        disabled = false;
     }
 
     @NonNull
@@ -78,7 +93,7 @@ public class LcGroup {
 
     private void logMessage(@NonNull final LcLevel logLevel, @Nullable final String message,
                             @Nullable final Throwable throwable, @NonNull final Object... args) {
-        if (logLevel.lessThan(Lc.getLogProcessor().getMinLogLevel())) {
+        if (disabled || logLevel.lessThan(Lc.getLogProcessor().getMinLogLevel())) {
             return;
         }
 
