@@ -24,6 +24,7 @@ import android.support.annotation.NonNull;
 import ru.touchin.roboswag.core.observables.storable.SafeConverter;
 import ru.touchin.roboswag.core.observables.storable.SafeStore;
 import ru.touchin.roboswag.core.observables.storable.Storable;
+import ru.touchin.roboswag.core.observables.storable.concrete.NonNullSafeStorable;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 
 /**
@@ -49,12 +50,12 @@ public class NonNullSafeMigratableStorableBuilder<TKey, TObject, TStoreObject> e
     }
 
     /**
-     * Building {@link Storable} object.
+     * Building {@link NonNullSafeStorable} object.
      *
-     * @return New {@link Storable}.
+     * @return New {@link NonNullSafeStorable}.
      */
     @NonNull
-    public Storable<TKey, TObject, TStoreObject> build() {
+    public NonNullSafeStorable<TKey, TObject, TStoreObject> build() {
         if (!(getStore() instanceof SafeStore) || !(getConverter() instanceof SafeConverter)) {
             throw new ShouldNotHappenException();
         }
@@ -64,7 +65,7 @@ public class NonNullSafeMigratableStorableBuilder<TKey, TObject, TStoreObject> e
         if (getMigration() == null) {
             throw new ShouldNotHappenException();
         }
-        return new Storable<>(this);
+        return new NonNullSafeStorable<>(this);
     }
 
 }

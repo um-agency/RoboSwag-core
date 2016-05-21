@@ -24,7 +24,9 @@ import android.support.annotation.Nullable;
 
 import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.log.LcGroup;
+import ru.touchin.roboswag.core.observables.ObservableResult;
 import ru.touchin.roboswag.core.observables.RxAndroidUtils;
+import ru.touchin.roboswag.core.observables.RxUtils;
 import ru.touchin.roboswag.core.observables.storable.builders.MigratableStorableBuilder;
 import ru.touchin.roboswag.core.observables.storable.builders.NonNullStorableBuilder;
 import ru.touchin.roboswag.core.observables.storable.builders.SafeStorableBuilder;
@@ -233,7 +235,7 @@ public class Storable<TKey, TObject, TStoreObject> {
      * It could emit only completed and errors events.
      * Errors won't be emitted if {@link #getStore()} implements {@link SafeStore} and {@link #getConverter()} implements {@link SafeConverter}.
      *
-     * @param newValue Value to set.
+     * @param newValue Value to set;
      * @return Observable of setting process.
      */
     @NonNull
@@ -270,12 +272,26 @@ public class Storable<TKey, TObject, TStoreObject> {
     }
 
     /**
-     * Setting value in background. If error emits then it will be raise assertion.
+     * Setting value in background. If error emits then it will raise assertion.
      *
      * @param newValue Value to set.
      */
     public void setCalm(@Nullable final TObject newValue) {
         set(newValue).subscribe(Actions.empty(), STORABLE_LC_GROUP::assertion);
+    }
+
+    /**
+     * Sets value synchronously. You should NOT use this method normally. Use {@link #set(Object)} asynchronously instead.
+     *
+     * @param newValue Value to set;
+     * @throws Store.StoreException          Throws if {@link Store} threw exception during storing;
+     * @throws Converter.ConversionException Throws if {@link Converter} threw exception during conversion;
+     * @throws Migration.MigrationException  Throws if {@link Migration} threw exception during migration.
+     */
+    public void setSync(@Nullable final TObject newValue)
+            throws Store.StoreException, Converter.ConversionException, Migration.MigrationException {
+        final ObservableResult<?> setResult = RxUtils.executeSync(set(newValue));
+        checkStorableObservableResult(setResult);
     }
 
     /**
@@ -300,6 +316,40 @@ public class Storable<TKey, TObject, TStoreObject> {
     @NonNull
     public Observable<TObject> get() {
         return valueObservable.first();
+    }
+
+    /**
+     * Gets value synchronously. You should NOT use this method normally. Use {@link #get()} or {@link #observe()} asynchronously instead.
+     *
+     * @return Returns value;
+     * @throws Store.StoreException          Throws if {@link Store} threw exception during getting from store;
+     * @throws Converter.ConversionException Throws if {@link Converter} threw exception during conversion;
+     * @throws Migration.MigrationException  Throws if {@link Migration} threw exception during migration.
+     */
+    @Nullable
+    public TObject getSync()
+            throws Store.StoreException, Converter.ConversionException, Migration.MigrationException {
+        final ObservableResult<TObject> getResult = RxUtils.executeSync(get());
+        checkStorableObservableResult(getResult);
+        if (getResult.getItems().size() != 1) {
+            throw new ShouldNotHappenException();
+        }
+        return getResult.getItems().get(0);
+    }
+
+    private void checkStorableObservableResult(@NonNull final ObservableResult<?> result)
+            throws Store.StoreException, Converter.ConversionException, Migration.MigrationException {
+        for (final Throwable throwable : result.getErrors()) {
+            if (throwable instanceof Store.StoreException) {
+                throw (Store.StoreException) throwable;
+            }
+            if (throwable instanceof Converter.ConversionException) {
+                throw (Converter.ConversionException) throwable;
+            }
+            if (throwable instanceof Migration.MigrationException) {
+                throw (Migration.MigrationException) throwable;
+            }
+        }
     }
 
     /**

@@ -27,6 +27,7 @@ import ru.touchin.roboswag.core.observables.storable.SafeConverter;
 import ru.touchin.roboswag.core.observables.storable.SafeStore;
 import ru.touchin.roboswag.core.observables.storable.Storable;
 import ru.touchin.roboswag.core.observables.storable.Store;
+import ru.touchin.roboswag.core.observables.storable.concrete.NonNullStorable;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 
 /**
@@ -91,16 +92,16 @@ public class NonNullStorableBuilder<TKey, TObject, TStoreObject> extends Storabl
     }
 
     /**
-     * Building {@link Storable} object.
+     * Building {@link NonNullStorable} object.
      *
-     * @return New {@link Storable}.
+     * @return New {@link NonNullStorable}.
      */
     @NonNull
-    public Storable<TKey, TObject, TStoreObject> build() {
+    public NonNullStorable<TKey, TObject, TStoreObject> build() {
         if (getDefaultValue() == null) {
             throw new ShouldNotHappenException();
         }
-        return new Storable<>(this);
+        return new NonNullStorable<>(this);
     }
 
 }
