@@ -52,6 +52,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
     private final ObservableList<TItem> innerList = new ObservableList<>();
 
     public LoadingGrowingList(@NonNull final LoadingRequestCreator<TItem, TItemId> loadingMoreRequestCreator) {
+        super();
         this.loadingMoreRequestCreator = loadingMoreRequestCreator;
         innerList.observeChanges().subscribe(change -> {
             //do not change - bug of RetroLambda
@@ -65,6 +66,11 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
     }
 
     @NonNull
+    public Observable<Boolean> observeHaveMoreItems() {
+        return haveMoreItems.distinctUntilChanged();
+    }
+
+    @NonNull
     private Observable<?> getLoadMoreObservable() {
         return Observable
                 .switchOnNext(Observable.<Observable<?>>create(subscriber -> {
@@ -75,12 +81,11 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                                 .subscribeOn(Schedulers.io())
                                 .observeOn(scheduler)
                                 .single()
-                                .onErrorResumeNext(throwable -> {
+                                .doOnError(throwable -> {
                                     if ((throwable instanceof IllegalArgumentException)
                                             || (throwable instanceof NoSuchElementException)) {
                                         Lc.assertion("Updates during loading not supported. LoadingRequestCreator should emit only one result.");
                                     }
-                                    return Observable.error(throwable);
                                 })
                                 .doOnNext(loadedItems -> {
                                     loadingMoreConcreteObservable = null;
@@ -123,8 +128,8 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                             subscriber.onCompleted();
                         })
                         .subscribeOn(scheduler))
-                .retryWhen(attempts ->
-                        attempts.map(throwable -> throwable instanceof DoRetryException ? Observable.just(null) : Observable.error(throwable)));
+                .retryWhen(attempts -> attempts
+                        .switchMap(throwable -> throwable instanceof DoRetryException ? Observable.just(null) : Observable.error(throwable)));
     }
 
     private static class DoRetryException extends Exception {

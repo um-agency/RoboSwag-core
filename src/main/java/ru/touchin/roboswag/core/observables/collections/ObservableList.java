@@ -37,10 +37,12 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
     private final List<TItem> items;
 
     public ObservableList() {
+        super();
         items = new ArrayList<>();
     }
 
     public ObservableList(@NonNull final Collection<TItem> initialItems) {
+        super();
         items = new ArrayList<>(initialItems);
     }
 
