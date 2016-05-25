@@ -103,7 +103,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
     @NonNull
     @Override
     public Observable<TItem> loadItem(final int position) {
-        return Observable.just(items.get(position));
+        return position < items.size() ? Observable.just(items.get(position)) : Observable.just(null);
     }
 
 }
