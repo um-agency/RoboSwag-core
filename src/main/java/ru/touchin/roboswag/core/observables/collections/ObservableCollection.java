@@ -23,6 +23,7 @@ import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 import rx.internal.util.RxRingBuffer;
@@ -34,6 +35,8 @@ import rx.subjects.PublishSubject;
  */
 public abstract class ObservableCollection<TItem> {
 
+    private static final long MIN_TIME_BEFORE_UPDATES = 100;
+
     @NonNull
     private final PublishSubject<Change> changeSubject = PublishSubject.create();
 
@@ -41,9 +44,15 @@ public abstract class ObservableCollection<TItem> {
         changeSubject.onNext(change);
     }
 
+    protected void notifyAboutChanges(@NonNull final List<Change> changes) {
+        for (final Change change : changes) {
+            changeSubject.onNext(change);
+        }
+    }
+
     @NonNull
-    public Observable<Change> observeChanges() {
-        return changeSubject;
+    public Observable<List<Change>> observeChanges() {
+        return changeSubject.buffer(MIN_TIME_BEFORE_UPDATES, TimeUnit.MILLISECONDS);
     }
 
     public abstract int size();

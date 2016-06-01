@@ -56,7 +56,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
         this.loadingMoreRequestCreator = loadingMoreRequestCreator;
         innerList.observeChanges().subscribe(change -> {
             //do not change - bug of RetroLambda
-            notifyAboutChange(change);
+            notifyAboutChanges(change);
         });
     }
 

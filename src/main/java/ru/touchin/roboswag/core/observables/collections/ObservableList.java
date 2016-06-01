@@ -86,9 +86,33 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         notifyAboutChange(new Change(Change.Type.CHANGED, position, 1));
     }
 
-    public void set(@NonNull final Collection<TItem> items) {
-        clear();
-        addAll(items);
+    public void set(@NonNull final Collection<TItem> newItems) {
+        int currentItemsStart = 0;
+        for (final TItem item : newItems) {
+            boolean found = false;
+            for (int i = currentItemsStart; i < items.size(); i++) {
+                if (item.equals(items.get(i))) {
+                    found = true;
+                    for (int j = currentItemsStart; j < i; j++) {
+                        items.remove(currentItemsStart);
+                    }
+                    notifyAboutChange(new Change(Change.Type.REMOVED, currentItemsStart, i - currentItemsStart));
+                    break;
+                }
+            }
+            if (!found) {
+                add(currentItemsStart, item);
+            }
+            currentItemsStart++;
+        }
+
+        if (currentItemsStart < items.size()) {
+            final int itemsToRemove = items.size() - currentItemsStart;
+            for (int i = 0; i < itemsToRemove; i++) {
+                items.remove(currentItemsStart);
+            }
+            notifyAboutChange(new Change(Change.Type.REMOVED, currentItemsStart, itemsToRemove));
+        }
     }
 
     public boolean isEmpty() {
