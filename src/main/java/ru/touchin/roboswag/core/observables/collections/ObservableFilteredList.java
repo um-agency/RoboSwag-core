@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 import rx.Observable;
 import rx.functions.Func1;
 
@@ -17,8 +18,8 @@ import rx.functions.Func1;
 public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
 
     @NonNull
-    private static <TItem> Collection<TItem> filterCollection(@NonNull final Collection<TItem> sourceCollection,
-                                                              @NonNull final Func1<TItem, Boolean> filter) {
+    private static <TItem> List<TItem> filterCollection(@NonNull final Collection<TItem> sourceCollection,
+                                                        @NonNull final Func1<TItem, Boolean> filter) {
         final List<TItem> result = new ArrayList<>(sourceCollection.size());
         for (final TItem item : sourceCollection) {
             if (filter.call(item)) {
@@ -28,49 +29,83 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
         return result;
     }
 
-    @NonNull
-    private final ObservableList<TItem> filteredList = new ObservableList<>();
-    @NonNull
-    private Collection<TItem> sourceCollection = new ArrayList<>();
+    @Nullable
+    private List<TItem> filteredList;
+    @Nullable
+    private Collection<TItem> sourceCollection;
     @Nullable
     private Func1<TItem, Boolean> filter;
 
     public ObservableFilteredList() {
-        filteredList.observeChanges().subscribe(change -> {
-            //do not change - bug of RetroLambda
-            notifyAboutChanges(change);
-        });
     }
 
-    public void setSourceCollection(@NonNull final Collection<TItem> sourceCollection) {
+    public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection) {
         this.sourceCollection = sourceCollection;
-        if (filter != null) {
-            filteredList.set(filterCollection(sourceCollection, filter));
-        } else {
-            filteredList.set(sourceCollection);
-        }
+        this.filteredList = new ArrayList<>(sourceCollection);
     }
 
-    public void setFilter(@NonNull final Func1<TItem, Boolean> filter) {
+    public ObservableFilteredList(@NonNull final Func1<TItem, Boolean> filter) {
         this.filter = filter;
-        filteredList.set(filterCollection(sourceCollection, filter));
+    }
+
+    public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection,
+                                  @NonNull final Func1<TItem, Boolean> filter) {
+        this.sourceCollection = sourceCollection;
+        this.filter = filter;
+        filteredList = filterCollection(this.sourceCollection, this.filter);
+    }
+
+    public void setSourceCollection(@Nullable final Collection<TItem> sourceCollection) {
+        this.sourceCollection = sourceCollection;
+        updateCollections();
+    }
+
+    public void setFilter(@Nullable final Func1<TItem, Boolean> filter) {
+        this.filter = filter;
+        updateCollections();
+    }
+
+    private void updateCollections() {
+        if (sourceCollection == null) {
+            if (filteredList != null) {
+                notifyAboutChange(new Change(Change.Type.REMOVED, 0, filteredList.size()));
+            }
+            filteredList = null;
+            return;
+        }
+        final List<TItem> oldFilteredList = filteredList;
+        if (filter != null) {
+            filteredList = filterCollection(sourceCollection, filter);
+        } else {
+            filteredList = new ArrayList<>(sourceCollection);
+        }
+        if (oldFilteredList != null) {
+            notifyAboutChanges(Change.calculateCollectionChanges(oldFilteredList, filteredList));
+        } else {
+            notifyAboutChange(new Change(Change.Type.INSERTED, 0, filteredList.size()));
+        }
     }
 
     @Override
     public int size() {
-        return filteredList.size();
+        return filteredList != null ? filteredList.size() : 0;
     }
 
     @NonNull
     @Override
     public TItem get(final int position) {
+        if (filteredList == null) {
+            throw new ShouldNotHappenException();
+        }
         return filteredList.get(position);
     }
 
     @NonNull
     @Override
     public Observable<TItem> loadItem(final int position) {
-        return filteredList.loadItem(position);
+        return filteredList != null && filteredList.size() > position
+                ? Observable.just(filteredList.get(position))
+                : Observable.just(null);
     }
 
 }

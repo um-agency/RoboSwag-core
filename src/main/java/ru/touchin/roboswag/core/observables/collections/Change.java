@@ -21,7 +21,77 @@ package ru.touchin.roboswag.core.observables.collections;
 
 import android.support.annotation.NonNull;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
 public class Change {
+
+    @NonNull
+    public static Collection<Change> calculateCollectionChanges(@NonNull final Collection initialCollection,
+                                                                @NonNull final Collection modifiedCollection) {
+        final Collection<Change> result = new ArrayList<>();
+
+        int bufferSize = modifiedCollection.size() - initialCollection.size();
+
+        int initialOffset = 0;
+        int itemsToAdd = 0;
+        int changedItems = 0;
+        int currentSize = 0;
+        for (final Object modifiedObject : modifiedCollection) {
+            boolean found = false;
+            int initialPosition = 0;
+            for (final Object initialObject : initialCollection) {
+                if (initialPosition < initialOffset) {
+                    initialPosition++;
+                    continue;
+                }
+                if (modifiedObject.equals(initialObject)) {
+                    if (itemsToAdd > 0) {
+                        if (bufferSize > 0) {
+                            result.add(new Change(Type.INSERTED, currentSize, itemsToAdd - Math.abs(bufferSize - itemsToAdd)));
+                            currentSize += itemsToAdd;
+                        }
+                        if (bufferSize < itemsToAdd) {
+                            int changed = Math.abs(bufferSize - itemsToAdd);
+                            result.add(new Change(Type.CHANGED, currentSize, changed));
+                            changedItems += changed;
+                            bufferSize = Math.min(bufferSize, 0);
+                        } else {
+                            bufferSize -= itemsToAdd;
+                        }
+                        currentSize += itemsToAdd;
+                        itemsToAdd = 0;
+                    }
+                    found = true;
+                    final int removeCount = initialPosition - initialOffset;
+                    if (removeCount > 0) {
+                        if (changedItems > 0) {
+
+                        }
+                        result.add(new Change(Change.Type.REMOVED, currentSize, removeCount));
+                    }
+                    initialOffset = initialPosition + 1;
+                    currentSize++;
+                    break;
+                }
+                initialPosition++;
+            }
+            if (!found) {
+                itemsToAdd++;
+            }
+        }
+
+        if (itemsToAdd > 0) {
+            result.add(new Change(Type.INSERTED, currentSize, itemsToAdd));
+            currentSize += itemsToAdd;
+        }
+
+        if (initialCollection.size() > currentSize) {
+            result.add(new Change(Change.Type.REMOVED, currentSize, initialCollection.size() - currentSize));
+        }
+
+        return result;
+    }
 
     @NonNull
     private final Type type;

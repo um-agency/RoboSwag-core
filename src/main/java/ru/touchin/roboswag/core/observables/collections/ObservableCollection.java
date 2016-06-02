@@ -22,8 +22,9 @@ package ru.touchin.roboswag.core.observables.collections;
 import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 import rx.internal.util.RxRingBuffer;
@@ -35,24 +36,20 @@ import rx.subjects.PublishSubject;
  */
 public abstract class ObservableCollection<TItem> {
 
-    private static final long MIN_TIME_BEFORE_UPDATES = 100;
-
     @NonNull
-    private final PublishSubject<Change> changeSubject = PublishSubject.create();
+    private final PublishSubject<Collection<Change>> changesSubject = PublishSubject.create();
 
     protected void notifyAboutChange(@NonNull final Change change) {
-        changeSubject.onNext(change);
+        notifyAboutChanges(Collections.singleton(change));
     }
 
-    protected void notifyAboutChanges(@NonNull final List<Change> changes) {
-        for (final Change change : changes) {
-            changeSubject.onNext(change);
-        }
+    protected void notifyAboutChanges(@NonNull final Collection<Change> changes) {
+        changesSubject.onNext(changes);
     }
 
     @NonNull
-    public Observable<List<Change>> observeChanges() {
-        return changeSubject.buffer(MIN_TIME_BEFORE_UPDATES, TimeUnit.MILLISECONDS);
+    public Observable<Collection<Change>> observeChanges() {
+        return changesSubject;
     }
 
     public abstract int size();
