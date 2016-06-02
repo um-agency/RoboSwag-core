@@ -31,11 +31,9 @@ public class Change {
                                                                 @NonNull final Collection modifiedCollection) {
         final Collection<Change> result = new ArrayList<>();
 
-        int bufferSize = modifiedCollection.size() - initialCollection.size();
-
+        int couldBeAdded = modifiedCollection.size() - initialCollection.size();
         int initialOffset = 0;
         int itemsToAdd = 0;
-        int changedItems = 0;
         int currentSize = 0;
         for (final Object modifiedObject : modifiedCollection) {
             boolean found = false;
@@ -47,28 +45,31 @@ public class Change {
                 }
                 if (modifiedObject.equals(initialObject)) {
                     if (itemsToAdd > 0) {
-                        if (bufferSize > 0) {
-                            result.add(new Change(Type.INSERTED, currentSize, itemsToAdd - Math.abs(bufferSize - itemsToAdd)));
-                            currentSize += itemsToAdd;
+                        if (couldBeAdded < itemsToAdd) {
+                            result.add(new Change(Type.CHANGED, currentSize, modifiedCollection.size() - currentSize));
+                            final int overSize = initialCollection.size() - modifiedCollection.size();
+                            if (overSize > 0) {
+                                result.add(new Change(Type.REMOVED, modifiedCollection.size(), overSize));
+                            }
+                            return result;
                         }
-                        if (bufferSize < itemsToAdd) {
-                            int changed = Math.abs(bufferSize - itemsToAdd);
-                            result.add(new Change(Type.CHANGED, currentSize, changed));
-                            changedItems += changed;
-                            bufferSize = Math.min(bufferSize, 0);
-                        } else {
-                            bufferSize -= itemsToAdd;
-                        }
-                        currentSize += itemsToAdd;
+                        result.add(new Change(Type.INSERTED, currentSize, itemsToAdd));
+                        couldBeAdded -= itemsToAdd;
                         itemsToAdd = 0;
                     }
                     found = true;
-                    final int removeCount = initialPosition - initialOffset;
-                    if (removeCount > 0) {
-                        if (changedItems > 0) {
-
+                    final int itemsToRemove = initialPosition - initialOffset;
+                    if (itemsToRemove > 0) {
+                        if (couldBeAdded < -itemsToRemove) {
+                            result.add(new Change(Type.CHANGED, currentSize, modifiedCollection.size() - currentSize));
+                            final int overSize = initialCollection.size() - modifiedCollection.size();
+                            if (overSize > 0) {
+                                result.add(new Change(Type.REMOVED, modifiedCollection.size(), overSize));
+                            }
+                            return result;
                         }
-                        result.add(new Change(Change.Type.REMOVED, currentSize, removeCount));
+                        result.add(new Change(Change.Type.REMOVED, currentSize, itemsToRemove));
+                        couldBeAdded += itemsToRemove;
                     }
                     initialOffset = initialPosition + 1;
                     currentSize++;
@@ -82,11 +83,29 @@ public class Change {
         }
 
         if (itemsToAdd > 0) {
+            if (couldBeAdded < itemsToAdd) {
+                result.add(new Change(Type.CHANGED, currentSize, modifiedCollection.size() - currentSize));
+                final int overSize = initialCollection.size() - modifiedCollection.size();
+                if (overSize > 0) {
+                    result.add(new Change(Type.REMOVED, modifiedCollection.size(), overSize));
+                }
+                return result;
+            }
             result.add(new Change(Type.INSERTED, currentSize, itemsToAdd));
             currentSize += itemsToAdd;
+            couldBeAdded -= itemsToAdd;
         }
 
-        if (initialCollection.size() > currentSize) {
+        final int itemsToRemove = initialCollection.size() - currentSize;
+        if (itemsToRemove > 0) {
+            if (couldBeAdded < -itemsToRemove) {
+                result.add(new Change(Type.CHANGED, currentSize, modifiedCollection.size() - currentSize));
+                final int overSize = initialCollection.size() - modifiedCollection.size();
+                if (overSize > 0) {
+                    result.add(new Change(Type.REMOVED, modifiedCollection.size(), overSize));
+                }
+                return result;
+            }
             result.add(new Change(Change.Type.REMOVED, currentSize, initialCollection.size() - currentSize));
         }
 
@@ -115,6 +134,11 @@ public class Change {
 
     public int getCount() {
         return count;
+    }
+
+    @Override
+    public String toString() {
+        return type + " change of " + start + ":" + count;
     }
 
     public enum Type {

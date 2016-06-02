@@ -68,9 +68,10 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
     private void updateCollections() {
         if (sourceCollection == null) {
             if (filteredList != null) {
-                notifyAboutChange(new Change(Change.Type.REMOVED, 0, filteredList.size()));
+                final int itemsToRemove = filteredList.size();
+                filteredList = null;
+                notifyAboutChange(new Change(Change.Type.REMOVED, 0, itemsToRemove));
             }
-            filteredList = null;
             return;
         }
         final List<TItem> oldFilteredList = filteredList;
