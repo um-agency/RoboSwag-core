@@ -36,19 +36,25 @@ import rx.subjects.PublishSubject;
  */
 public abstract class ObservableCollection<TItem> {
 
+    private int changesCount;
     @NonNull
-    private final PublishSubject<Collection<Change>> changesSubject = PublishSubject.create();
+    private final PublishSubject<CollectionChange> changesSubject = PublishSubject.create();
+
+    public int getChangesCount() {
+        return changesCount;
+    }
 
     protected void notifyAboutChange(@NonNull final Change change) {
         notifyAboutChanges(Collections.singleton(change));
     }
 
     protected void notifyAboutChanges(@NonNull final Collection<Change> changes) {
-        changesSubject.onNext(changes);
+        changesCount++;
+        changesSubject.onNext(new CollectionChange(changesCount, changes));
     }
 
     @NonNull
-    public Observable<Collection<Change>> observeChanges() {
+    public Observable<CollectionChange> observeChanges() {
         return changesSubject;
     }
 
@@ -59,6 +65,10 @@ public abstract class ObservableCollection<TItem> {
 
     @NonNull
     public abstract Observable<TItem> loadItem(int position);
+
+    public boolean isEmpty() {
+        return size() == 0;
+    }
 
     @NonNull
     @SuppressWarnings("unchecked")
@@ -91,6 +101,28 @@ public abstract class ObservableCollection<TItem> {
             }
             return result;
         });
+    }
+
+    public static class CollectionChange {
+
+        private final int number;
+        @NonNull
+        private final Collection<Change> changes;
+
+        protected CollectionChange(final int number, @NonNull final Collection<Change> changes) {
+            this.number = number;
+            this.changes = changes;
+        }
+
+        public int getNumber() {
+            return number;
+        }
+
+        @NonNull
+        public Collection<Change> getChanges() {
+            return changes;
+        }
+
     }
 
 }

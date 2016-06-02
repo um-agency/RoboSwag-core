@@ -93,10 +93,6 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         notifyAboutChanges(changes);
     }
 
-    public boolean isEmpty() {
-        return items.isEmpty();
-    }
-
     @Override
     public int size() {
         return items.size();

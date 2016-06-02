@@ -37,19 +37,24 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
     private Func1<TItem, Boolean> filter;
 
     public ObservableFilteredList() {
+        super();
+        //do nothing
     }
 
     public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection) {
+        super();
         this.sourceCollection = sourceCollection;
         this.filteredList = new ArrayList<>(sourceCollection);
     }
 
     public ObservableFilteredList(@NonNull final Func1<TItem, Boolean> filter) {
+        super();
         this.filter = filter;
     }
 
     public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection,
                                   @NonNull final Func1<TItem, Boolean> filter) {
+        super();
         this.sourceCollection = sourceCollection;
         this.filter = filter;
         filteredList = filterCollection(this.sourceCollection, this.filter);
@@ -81,7 +86,10 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
             filteredList = new ArrayList<>(sourceCollection);
         }
         if (oldFilteredList != null) {
-            notifyAboutChanges(Change.calculateCollectionChanges(oldFilteredList, filteredList));
+            final Collection<Change> changes = Change.calculateCollectionChanges(oldFilteredList, filteredList);
+            if (!changes.isEmpty()) {
+                notifyAboutChanges(changes);
+            }
         } else {
             notifyAboutChange(new Change(Change.Type.INSERTED, 0, filteredList.size()));
         }
