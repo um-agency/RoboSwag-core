@@ -61,7 +61,9 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
 
     public void addAll(final int position, @NonNull final Collection<TItem> itemsToAdd) {
         items.addAll(position, itemsToAdd);
-        notifyAboutChange(new Change(Change.Type.INSERTED, position, itemsToAdd.size()));
+        if (!itemsToAdd.isEmpty()) {
+            notifyAboutChange(new Change(Change.Type.INSERTED, position, itemsToAdd.size()));
+        }
     }
 
     public void remove(final int position) {
@@ -72,7 +74,9 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
     public void clear() {
         final int oldSize = items.size();
         items.clear();
-        notifyAboutChange(new Change(Change.Type.REMOVED, 0, oldSize));
+        if (oldSize > 0) {
+            notifyAboutChange(new Change(Change.Type.REMOVED, 0, oldSize));
+        }
     }
 
     @NonNull
