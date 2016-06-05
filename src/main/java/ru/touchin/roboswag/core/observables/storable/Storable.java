@@ -250,6 +250,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                                 final TStoreObject storeObject = converter.toStoreObject(objectClass, storeObjectClass, newValue);
                                 store.storeObject(storeObjectClass, key, storeObject);
                                 newStoreValueEvent.onNext(storeObject);
+                                STORABLE_LC_GROUP.i("Value of '%s' changed from '%s' to '%s'", key, value, newValue);
                             } catch (final Converter.ConversionException conversionException) {
                                 if (converter instanceof SafeConverter) {
                                     STORABLE_LC_GROUP.assertion(conversionException);
@@ -267,8 +268,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                                 subscriber.onError(storeException);
                             }
                             subscriber.onCompleted();
-                        })
-                        .doOnCompleted(() -> Lc.i("Value of '%s' changed from '%s' to '%s'", key, value, newValue)));
+                        }));
     }
 
     /**
