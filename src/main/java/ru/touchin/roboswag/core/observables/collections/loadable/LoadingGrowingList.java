@@ -22,7 +22,9 @@ package ru.touchin.roboswag.core.observables.collections.loadable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import ru.touchin.roboswag.core.log.Lc;
@@ -51,6 +53,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
     private final BehaviorSubject<Boolean> haveMoreItems = BehaviorSubject.create(true);
     @NonNull
     private final ObservableList<TItem> innerList = new ObservableList<>();
+    private boolean removeDuplicates;
 
     public LoadingGrowingList(@NonNull final LoadingRequestCreator<TItem, TItemId> loadingMoreRequestCreator) {
         super();
@@ -69,6 +72,10 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
     @NonNull
     public Observable<Boolean> observeHaveMoreItems() {
         return haveMoreItems.distinctUntilChanged();
+    }
+
+    public void setIsRemoveDuplicates(final boolean removeDuplicates) {
+        this.removeDuplicates = removeDuplicates;
     }
 
     @NonNull
@@ -90,7 +97,11 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                                 })
                                 .doOnNext(loadedItems -> {
                                     loadingMoreConcreteObservable = null;
-                                    innerList.addAll(loadedItems.getItems());
+                                    final List<TItem> items = new ArrayList<>(loadedItems.getItems());
+                                    if (removeDuplicates) {
+                                        removeDuplicatesFromList(items);
+                                    }
+                                    innerList.addAll(items);
                                     haveMoreItems.onNext(loadedItems.haveMoreItems());
                                 })
                                 .replay(1)
@@ -100,6 +111,16 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                     subscriber.onCompleted();
                 }))
                 .subscribeOn(scheduler);
+    }
+
+    private void removeDuplicatesFromList(@NonNull final List<TItem> items) {
+        for (int i = items.size() - 1; i >= 0; i--) {
+            for (int j = 0; j < innerList.size(); j++) {
+                if (innerList.get(j).equals(items.get(i))) {
+                    items.remove(i);
+                }
+            }
+        }
     }
 
     @Override
@@ -139,8 +160,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
     }
 
     public void reset(@NonNull final Collection<TItem> initialItems) {
-        innerList.clear();
-        innerList.addAll(initialItems);
+        innerList.set(initialItems);
         haveMoreItems.onNext(true);
     }
 
