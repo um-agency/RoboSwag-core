@@ -22,6 +22,7 @@ package ru.touchin.roboswag.core.observables.collections.loadable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.NoSuchElementException;
 
 import ru.touchin.roboswag.core.log.Lc;
@@ -130,6 +131,17 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                         .subscribeOn(scheduler))
                 .retryWhen(attempts -> attempts
                         .switchMap(throwable -> throwable instanceof DoRetryException ? Observable.just(null) : Observable.error(throwable)));
+    }
+
+    public void reset() {
+        innerList.clear();
+        haveMoreItems.onNext(true);
+    }
+
+    public void reset(@NonNull final Collection<TItem> initialItems) {
+        innerList.clear();
+        innerList.addAll(initialItems);
+        haveMoreItems.onNext(true);
     }
 
     private static class DoRetryException extends Exception {
