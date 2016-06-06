@@ -78,7 +78,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                     if (loadingMoreConcreteObservable == null) {
                         final TItemId fromItemId = !innerList.isEmpty() ? get(size() - 1).getItemId() : null;
                         loadingMoreConcreteObservable = loadingMoreRequestCreator
-                                .loadByItemId(new LoadingFromRequest<>(fromItemId, size() - 1))
+                                .loadByItemId(new LoadingFromRequest<>(fromItemId, Math.max(0, size() - 1)))
                                 .subscribeOn(Schedulers.io())
                                 .observeOn(scheduler)
                                 .single()
