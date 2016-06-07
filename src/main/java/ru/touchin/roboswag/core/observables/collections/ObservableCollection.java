@@ -76,7 +76,13 @@ public abstract class ObservableCollection<TItem> {
         for (int i = first; i <= last; i++) {
             itemsRequests.add(loadItem(i));
         }
-        return Observable.concatEager(itemsRequests).toList();
+        return Observable.concatEager(itemsRequests).toList().doOnNext(list -> {
+            for (int i = list.size() - 1; i >= 0; i--) {
+                if (list.get(i) == null) {
+                    list.remove(i);
+                }
+            }
+        });
     }
 
     public static class CollectionChange {
