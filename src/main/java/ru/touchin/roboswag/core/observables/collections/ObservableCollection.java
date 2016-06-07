@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 
 import rx.Observable;
-import rx.internal.util.RxRingBuffer;
 import rx.subjects.PublishSubject;
 
 /**
@@ -73,34 +72,11 @@ public abstract class ObservableCollection<TItem> {
     @NonNull
     @SuppressWarnings("unchecked")
     public Observable<List<TItem>> loadRange(final int first, final int last) {
-        final List<Observable<List<TItem>>> itemsRequests = new ArrayList<>();
-
-        int index = first;
-        while (index <= last) {
-            final List<Observable<TItem>> limitedPageRequests = new ArrayList<>();
-            final int maxIndex = index + RxRingBuffer.SIZE - 1;
-            while (index <= Math.min(last, maxIndex)) {
-                limitedPageRequests.add(loadItem(index));
-                index++;
-            }
-            itemsRequests.add(Observable.combineLatest(limitedPageRequests, args -> {
-                final List<TItem> resultPart = new ArrayList<>(args.length);
-                for (final Object item : args) {
-                    if (item != null) {
-                        resultPart.add((TItem) item);
-                    }
-                }
-                return resultPart;
-            }));
+        final List<Observable<TItem>> itemsRequests = new ArrayList<>();
+        for (int i = first; i <= last; i++) {
+            itemsRequests.add(loadItem(i));
         }
-
-        return Observable.combineLatest(itemsRequests, args -> {
-            final List<TItem> result = new ArrayList<>();
-            for (final Object resultPart : args) {
-                result.addAll((List<TItem>) resultPart);
-            }
-            return result;
-        });
+        return Observable.concatEager(itemsRequests).toList();
     }
 
     public static class CollectionChange {
