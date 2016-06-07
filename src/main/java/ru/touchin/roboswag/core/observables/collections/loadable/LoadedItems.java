@@ -27,7 +27,7 @@ import java.util.Collection;
  */
 public interface LoadedItems<TItem> {
 
-    boolean haveMoreItems();
+    boolean hasMoreItems();
 
     Collection<TItem> getItems();
 

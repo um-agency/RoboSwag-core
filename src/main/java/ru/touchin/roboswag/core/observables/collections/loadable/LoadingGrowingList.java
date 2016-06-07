@@ -50,7 +50,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
     @Nullable
     private Observable<?> loadingMoreConcreteObservable;
     @NonNull
-    private final BehaviorSubject<Boolean> haveMoreItems = BehaviorSubject.create(true);
+    private final BehaviorSubject<Boolean> hasMoreItems = BehaviorSubject.create(true);
     @NonNull
     private final ObservableList<TItem> innerList = new ObservableList<>();
     private boolean removeDuplicates;
@@ -70,11 +70,11 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
     }
 
     @NonNull
-    public Observable<Boolean> observeHaveMoreItems() {
-        return haveMoreItems.distinctUntilChanged();
+    public Observable<Boolean> observeHasMoreItems() {
+        return hasMoreItems.distinctUntilChanged();
     }
 
-    public void setIsRemoveDuplicates(final boolean removeDuplicates) {
+    public void setRemoveDuplicates(final boolean removeDuplicates) {
         this.removeDuplicates = removeDuplicates;
     }
 
@@ -102,7 +102,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                                         removeDuplicatesFromList(items);
                                     }
                                     innerList.addAll(items);
-                                    haveMoreItems.onNext(loadedItems.haveMoreItems());
+                                    hasMoreItems.onNext(loadedItems.hasMoreItems());
                                 })
                                 .replay(1)
                                 .refCount();
@@ -118,6 +118,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
             for (int j = 0; j < innerList.size(); j++) {
                 if (innerList.get(j).equals(items.get(i))) {
                     items.remove(i);
+                    break;
                 }
             }
         }
@@ -142,7 +143,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                         .<Observable<TItem>>create(subscriber -> {
                             if (position < size()) {
                                 subscriber.onNext(Observable.just(get(position)));
-                            } else if (!haveMoreItems.getValue()) {
+                            } else if (!hasMoreItems.getValue()) {
                                 subscriber.onNext(Observable.just((TItem) null));
                             } else {
                                 subscriber.onNext(getLoadMoreObservable().switchMap(ignored -> Observable.<TItem>error(new DoRetryException())));
@@ -156,12 +157,12 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
 
     public void reset() {
         innerList.clear();
-        haveMoreItems.onNext(true);
+        hasMoreItems.onNext(true);
     }
 
     public void reset(@NonNull final Collection<TItem> initialItems) {
         innerList.set(initialItems);
-        haveMoreItems.onNext(true);
+        hasMoreItems.onNext(true);
     }
 
     private static class DoRetryException extends Exception {
