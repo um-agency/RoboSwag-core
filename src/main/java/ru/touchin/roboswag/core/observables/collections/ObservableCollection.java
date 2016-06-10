@@ -37,23 +37,23 @@ public abstract class ObservableCollection<TItem> {
 
     private int changesCount;
     @NonNull
-    private final PublishSubject<CollectionChange> changesSubject = PublishSubject.create();
+    private final PublishSubject<CollectionChange<TItem>> changesSubject = PublishSubject.create();
 
     public int getChangesCount() {
         return changesCount;
     }
 
-    protected void notifyAboutChange(@NonNull final Change change) {
+    protected void notifyAboutChange(@NonNull final Change<TItem> change) {
         notifyAboutChanges(Collections.singleton(change));
     }
 
-    protected void notifyAboutChanges(@NonNull final Collection<Change> changes) {
+    protected void notifyAboutChanges(@NonNull final Collection<Change<TItem>> changes) {
         changesCount++;
-        changesSubject.onNext(new CollectionChange(changesCount, changes));
+        changesSubject.onNext(new CollectionChange<>(changesCount, changes));
     }
 
     @NonNull
-    public Observable<CollectionChange> observeChanges() {
+    public Observable<CollectionChange<TItem>> observeChanges() {
         return changesSubject;
     }
 
@@ -61,6 +61,9 @@ public abstract class ObservableCollection<TItem> {
 
     @NonNull
     public abstract TItem get(int position);
+
+    @NonNull
+    public abstract Collection<TItem> getItems();
 
     @NonNull
     public abstract Observable<TItem> loadItem(int position);
@@ -85,13 +88,13 @@ public abstract class ObservableCollection<TItem> {
         });
     }
 
-    public static class CollectionChange {
+    public static class CollectionChange<TItem> {
 
         private final int number;
         @NonNull
-        private final Collection<Change> changes;
+        private final Collection<Change<TItem>> changes;
 
-        protected CollectionChange(final int number, @NonNull final Collection<Change> changes) {
+        protected CollectionChange(final int number, @NonNull final Collection<Change<TItem>> changes) {
             this.number = number;
             this.changes = changes;
         }
@@ -101,7 +104,7 @@ public abstract class ObservableCollection<TItem> {
         }
 
         @NonNull
-        public Collection<Change> getChanges() {
+        public Collection<Change<TItem>> getChanges() {
             return changes;
         }
 

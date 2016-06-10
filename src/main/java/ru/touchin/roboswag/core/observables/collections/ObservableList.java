@@ -23,6 +23,7 @@ import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import rx.Observable;
@@ -52,7 +53,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
 
     public void add(final int position, @NonNull final TItem item) {
         items.add(position, item);
-        notifyAboutChange(new Change(Change.Type.INSERTED, position, 1));
+        notifyAboutChange(new Change<>(Change.Type.INSERTED, Collections.singleton(item), position));
     }
 
     public void addAll(@NonNull final Collection<TItem> itemsToAdd) {
@@ -62,20 +63,28 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
     public void addAll(final int position, @NonNull final Collection<TItem> itemsToAdd) {
         items.addAll(position, itemsToAdd);
         if (!itemsToAdd.isEmpty()) {
-            notifyAboutChange(new Change(Change.Type.INSERTED, position, itemsToAdd.size()));
+            notifyAboutChange(new Change<>(Change.Type.INSERTED, itemsToAdd, position));
         }
     }
 
     public void remove(final int position) {
-        items.remove(position);
-        notifyAboutChange(new Change(Change.Type.REMOVED, position, 1));
+        remove(position, 1);
+    }
+
+    public void remove(final int position, final int count) {
+        final List<TItem> changedItems = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            changedItems.add(items.get(position));
+            items.remove(position);
+        }
+        notifyAboutChange(new Change<>(Change.Type.REMOVED, changedItems, position));
     }
 
     public void clear() {
-        final int oldSize = items.size();
+        final Change<TItem> change = new Change<>(Change.Type.REMOVED, items, 0);
         items.clear();
-        if (oldSize > 0) {
-            notifyAboutChange(new Change(Change.Type.REMOVED, 0, oldSize));
+        if (!change.getChangedItems().isEmpty()) {
+            notifyAboutChange(change);
         }
     }
 
@@ -85,16 +94,32 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         return items.get(position);
     }
 
-    public void set(final int position, @NonNull final TItem item) {
-        items.set(position, item);
-        notifyAboutChange(new Change(Change.Type.CHANGED, position, 1));
+    @NonNull
+    @Override
+    public Collection<TItem> getItems() {
+        return Collections.unmodifiableCollection(items);
+    }
+
+    public void update(final int position, @NonNull final TItem item) {
+        update(position, Collections.singleton(item));
+    }
+
+    public void update(final int position, @NonNull final Collection<TItem> updatedItems) {
+        int i = position;
+        for (final TItem item : updatedItems) {
+            items.set(i, item);
+            i++;
+        }
+        notifyAboutChange(new Change<>(Change.Type.CHANGED, updatedItems, position));
     }
 
     public void set(@NonNull final Collection<TItem> newItems) {
-        final Collection<Change> changes = Change.calculateCollectionChanges(items, newItems);
+        final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(items, newItems, false);
         items.clear();
         items.addAll(newItems);
-        notifyAboutChanges(changes);
+        if (changes.size() > 0) {
+            notifyAboutChanges(changes);
+        }
     }
 
     @Override

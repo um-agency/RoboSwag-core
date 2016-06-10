@@ -137,6 +137,12 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
 
     @NonNull
     @Override
+    public Collection<TItem> getItems() {
+        return innerList.getItems();
+    }
+
+    @NonNull
+    @Override
     public Observable<TItem> loadItem(final int position) {
         return Observable
                 .switchOnNext(Observable

@@ -5,6 +5,7 @@ import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
@@ -73,9 +74,9 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
     private void updateCollections() {
         if (sourceCollection == null) {
             if (filteredList != null) {
-                final int itemsToRemove = filteredList.size();
+                final Change<TItem> change = new Change<>(Change.Type.REMOVED, filteredList, 0);
                 filteredList = null;
-                notifyAboutChange(new Change(Change.Type.REMOVED, 0, itemsToRemove));
+                notifyAboutChange(change);
             }
             return;
         }
@@ -86,12 +87,12 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
             filteredList = new ArrayList<>(sourceCollection);
         }
         if (oldFilteredList != null) {
-            final Collection<Change> changes = Change.calculateCollectionChanges(oldFilteredList, filteredList);
+            final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(oldFilteredList, filteredList, false);
             if (!changes.isEmpty()) {
                 notifyAboutChanges(changes);
             }
         } else {
-            notifyAboutChange(new Change(Change.Type.INSERTED, 0, filteredList.size()));
+            notifyAboutChange(new Change<>(Change.Type.INSERTED, filteredList, 0));
         }
     }
 
@@ -107,6 +108,12 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
             throw new ShouldNotHappenException();
         }
         return filteredList.get(position);
+    }
+
+    @NonNull
+    @Override
+    public Collection<TItem> getItems() {
+        return filteredList != null ? Collections.unmodifiableCollection(filteredList) : Collections.emptyList();
     }
 
     @NonNull
