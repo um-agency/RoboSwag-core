@@ -85,6 +85,9 @@ public final class RxAndroidUtils {
         }
     }
 
+    private RxAndroidUtils() {
+    }
+
     private static class SubscribeServiceConnection<T> implements ServiceConnection {
 
         @Nullable
