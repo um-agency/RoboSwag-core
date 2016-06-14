@@ -19,6 +19,8 @@
 
 package ru.touchin.roboswag.core.log;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
@@ -200,6 +202,31 @@ public final class Lc {
     }
 
     /**
+     * Throws assertion on main thread (to avoid Rx exceptions e.g.) and cuts top causes by type of exception class.
+     *
+     * @param assertion              Source throwable;
+     * @param exceptionsClassesToCut Classes which will be cut from top of causes stack of source throwable.
+     */
+    @SafeVarargs
+    public static void cutAssertion(@NonNull final Throwable assertion, @NonNull final Class<? extends Throwable>... exceptionsClassesToCut) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            Throwable result = assertion;
+            boolean exceptionAssignableFromIgnores;
+            do {
+                exceptionAssignableFromIgnores = false;
+                for (final Class exceptionClass : exceptionsClassesToCut) {
+                    if (result.getClass().isAssignableFrom(exceptionClass)) {
+                        exceptionAssignableFromIgnores = true;
+                        result = result.getCause();
+                        break;
+                    }
+                }
+            } while (exceptionAssignableFromIgnores && result != null);
+            Lc.assertion(result != null ? result : assertion);
+        });
+    }
+
+    /**
      * Returns line of code from where this method called.
      *
      * @param caller Object who is calling for code point;
@@ -217,6 +244,7 @@ public final class Lc {
      *
      * @param tag Tag to be shown in logs.
      */
+
     public static void printStackTrace(@NonNull final String tag) {
         final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, STACK_TRACE_CODE_DEPTH, stackTrace.length)));
