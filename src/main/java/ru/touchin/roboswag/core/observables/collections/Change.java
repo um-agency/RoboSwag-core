@@ -44,7 +44,7 @@ public class Change<TItem> {
 
     public Change(@NonNull final Type type, @NonNull final Collection<TItem> changedItems, final int start) {
         this.type = type;
-        this.changedItems = Collections.unmodifiableCollection(changedItems);
+        this.changedItems = Collections.unmodifiableCollection(new ArrayList<>(changedItems));
         this.start = start;
         this.count = changedItems.size();
     }
@@ -124,7 +124,8 @@ public class Change<TItem> {
                     }
                     foundPosition++;
                 }
-                if (foundPosition != initialOffset - 1) {
+                // if not found
+                if (foundPosition >= initialCollection.size()) {
                     itemsToAdd.add(modifiedItem);
                 }
             }
@@ -132,7 +133,7 @@ public class Change<TItem> {
             if (tryAddSkipped(result) == MethodAction.RETURN) {
                 return result;
             }
-            tryRemoveRest(result, currentSize, initialCollection.size() - currentSize);
+            tryRemoveRest(result, initialOffset, initialCollection.size() - initialOffset);
             return result;
         }
 
