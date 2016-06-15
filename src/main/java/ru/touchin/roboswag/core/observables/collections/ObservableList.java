@@ -105,10 +105,10 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
     }
 
     public void update(final int position, @NonNull final Collection<TItem> updatedItems) {
-        int i = position;
+        int index = position;
         for (final TItem item : updatedItems) {
-            items.set(i, item);
-            i++;
+            items.set(index, item);
+            index++;
         }
         notifyAboutChange(new Change<>(Change.Type.CHANGED, updatedItems, position));
     }
@@ -117,7 +117,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(items, newItems, false);
         items.clear();
         items.addAll(newItems);
-        if (changes.size() > 0) {
+        if (!changes.isEmpty()) {
             notifyAboutChanges(changes);
         }
     }
