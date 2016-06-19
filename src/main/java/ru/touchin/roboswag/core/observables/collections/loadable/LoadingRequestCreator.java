@@ -23,7 +23,7 @@ import android.support.annotation.NonNull;
 
 import rx.Observable;
 
-public interface LoadingRequestCreator<TItem, TItemId> {
+public interface LoadingRequestCreator<TItem extends ItemWithId<TItemId>, TItemId> {
 
     @NonNull
     Observable<LoadedItems<TItem>> loadByItemId(@NonNull final LoadingFromRequest<TItemId> loadingFromRequest);
