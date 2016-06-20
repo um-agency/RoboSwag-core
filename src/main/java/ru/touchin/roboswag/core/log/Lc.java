@@ -26,7 +26,9 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 
@@ -210,10 +212,12 @@ public final class Lc {
     @SafeVarargs
     public static void cutAssertion(@NonNull final Throwable assertion, @NonNull final Class<? extends Throwable>... exceptionsClassesToCut) {
         new Handler(Looper.getMainLooper()).post(() -> {
+            final List<Throwable> processedExceptions = new ArrayList<>();
             Throwable result = assertion;
             boolean exceptionAssignableFromIgnores;
             do {
                 exceptionAssignableFromIgnores = false;
+                processedExceptions.add(result);
                 for (final Class exceptionClass : exceptionsClassesToCut) {
                     if (result.getClass().isAssignableFrom(exceptionClass)) {
                         exceptionAssignableFromIgnores = true;
@@ -221,7 +225,7 @@ public final class Lc {
                         break;
                     }
                 }
-            } while (exceptionAssignableFromIgnores && result != null);
+            } while (exceptionAssignableFromIgnores && result != null && !processedExceptions.contains(result));
             Lc.assertion(result != null ? result : assertion);
         });
     }
