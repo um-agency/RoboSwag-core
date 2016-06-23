@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import ru.touchin.roboswag.core.log.Lc;
+import ru.touchin.roboswag.core.observables.collections.Change;
 import ru.touchin.roboswag.core.observables.collections.ObservableCollection;
 import ru.touchin.roboswag.core.observables.collections.ObservableList;
 import ru.touchin.roboswag.core.utils.android.RxAndroidUtils;
@@ -58,10 +59,17 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
     public LoadingGrowingList(@NonNull final LoadingRequestCreator<TItem, TItemId> loadingMoreRequestCreator) {
         super();
         this.loadingMoreRequestCreator = loadingMoreRequestCreator;
-        innerList.observeChanges().subscribe(change -> {
-            //do not change - bug of RetroLambda
-            notifyAboutChanges(change.getChanges());
-        });
+    }
+
+    @NonNull
+    @Override
+    public Observable<CollectionChange<TItem>> observeChanges() {
+        return innerList.observeChanges();
+    }
+
+    @Override
+    protected void notifyAboutChanges(@NonNull final Collection<Change<TItem>> changes) {
+        Lc.assertion("Illegal operation");
     }
 
     @NonNull
