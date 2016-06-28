@@ -19,15 +19,13 @@
 
 package ru.touchin.roboswag.core.observables.collections.loadable;
 
-import android.support.annotation.Nullable;
+import android.support.annotation.NonNull;
 
-/**
- * Created by Gavriil Sitnikov on 23/05/16.
- * TODO: description
- */
-public interface ItemWithId<TItemId> {
+import rx.Observable;
 
-    @Nullable
-    TItemId getItemId();
+public interface ItemsLoader<TItem, TReference> {
+
+    @NonNull
+    Observable<LoadedItems<TItem,TReference>> load(@NonNull final ItemsRequest<TReference> itemsRequest);
 
 }

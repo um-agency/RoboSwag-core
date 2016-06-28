@@ -41,13 +41,12 @@ import rx.subjects.BehaviorSubject;
  * Created by Gavriil Sitnikov on 23/05/16.
  * TODO: description
  */
-public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
-        extends ObservableCollection<TItem> {
+public class LoadingGrowingList<TItem, TReference> extends ObservableCollection<TItem> {
 
     @NonNull
-    private final Scheduler scheduler = RxAndroidUtils.createLooperScheduler();
+    private final Scheduler loaderScheduler = RxAndroidUtils.createLooperScheduler();
     @NonNull
-    private final LoadingRequestCreator<TItem, TItemId> loadingMoreRequestCreator;
+    private final ItemsLoader<TItem, TReference> moreItemsLoader;
     @Nullable
     private Observable<?> loadingMoreConcreteObservable;
     @NonNull
@@ -55,10 +54,12 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
     @NonNull
     private final ObservableList<TItem> innerList = new ObservableList<>();
     private boolean removeDuplicates;
+    @Nullable
+    private TReference moreItemsReference;
 
-    public LoadingGrowingList(@NonNull final LoadingRequestCreator<TItem, TItemId> loadingMoreRequestCreator) {
+    public LoadingGrowingList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader) {
         super();
-        this.loadingMoreRequestCreator = loadingMoreRequestCreator;
+        this.moreItemsLoader = moreItemsLoader;
     }
 
     @NonNull
@@ -91,11 +92,10 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
         return Observable
                 .switchOnNext(Observable.<Observable<?>>create(subscriber -> {
                     if (loadingMoreConcreteObservable == null) {
-                        final TItemId fromItemId = !innerList.isEmpty() ? get(size() - 1).getItemId() : null;
-                        loadingMoreConcreteObservable = loadingMoreRequestCreator
-                                .loadByItemId(new LoadingFromRequest<>(fromItemId, Math.max(0, size() - 1)))
+                        loadingMoreConcreteObservable = moreItemsLoader
+                                .load(new ItemsRequest<>(moreItemsReference, Math.max(0, size() - 1)))
                                 .subscribeOn(Schedulers.io())
-                                .observeOn(scheduler)
+                                .observeOn(loaderScheduler)
                                 .single()
                                 .doOnError(throwable -> {
                                     if ((throwable instanceof IllegalArgumentException)
@@ -104,6 +104,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                                     }
                                 })
                                 .doOnNext(loadedItems -> {
+                                    moreItemsReference = loadedItems.getReference();
                                     loadingMoreConcreteObservable = null;
                                     final List<TItem> items = new ArrayList<>(loadedItems.getItems());
                                     if (removeDuplicates) {
@@ -118,7 +119,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                     subscriber.onNext(loadingMoreConcreteObservable);
                     subscriber.onCompleted();
                 }))
-                .subscribeOn(scheduler);
+                .subscribeOn(loaderScheduler);
     }
 
     private void removeDuplicatesFromList(@NonNull final List<TItem> items) {
@@ -164,7 +165,7 @@ public class LoadingGrowingList<TItemId, TItem extends ItemWithId<TItemId>>
                             }
                             subscriber.onCompleted();
                         })
-                        .subscribeOn(scheduler))
+                        .subscribeOn(loaderScheduler))
                 .retryWhen(attempts -> attempts
                         .switchMap(throwable -> throwable instanceof DoRetryException ? Observable.just(null) : Observable.error(throwable)));
     }
