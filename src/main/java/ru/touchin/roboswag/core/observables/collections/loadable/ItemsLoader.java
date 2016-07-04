@@ -26,6 +26,6 @@ import rx.Observable;
 public interface ItemsLoader<TItem, TReference> {
 
     @NonNull
-    Observable<LoadedItems<TItem,TReference>> load(@NonNull final ItemsRequest<TReference> itemsRequest);
+    Observable<LoadedItems<TItem,TReference>> load(@NonNull final LoadRequest<TReference> loadRequest);
 
 }

@@ -21,13 +21,13 @@ package ru.touchin.roboswag.core.observables.collections.loadable;
 
 import android.support.annotation.Nullable;
 
-public class ItemsRequest<TReference> {
+public class LoadRequest<TReference> {
 
     @Nullable
     private final TReference reference;
     private final int position;
 
-    public ItemsRequest(@Nullable final TReference reference, final int position) {
+    public LoadRequest(@Nullable final TReference reference, final int position) {
         this.reference = reference;
         this.position = position;
     }

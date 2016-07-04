@@ -30,7 +30,9 @@ import java.util.Collection;
  */
 public interface LoadedItems<TItem, TReference> {
 
-    boolean hasMoreItems();
+    int UNKNOWN_ITEMS_COUNT = -1;
+
+    int getMoreItemsCount();
 
     @NonNull
     Collection<TItem> getItems();

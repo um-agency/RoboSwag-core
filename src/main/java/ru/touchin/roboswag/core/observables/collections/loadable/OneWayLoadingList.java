@@ -41,25 +41,48 @@ import rx.subjects.BehaviorSubject;
  * Created by Gavriil Sitnikov on 23/05/16.
  * TODO: description
  */
-public class LoadingGrowingList<TItem, TReference> extends ObservableCollection<TItem> {
+public class OneWayLoadingList<TItem, TReference> extends ObservableCollection<TItem> {
 
     @NonNull
     private final Scheduler loaderScheduler = RxAndroidUtils.createLooperScheduler();
     @NonNull
-    private final ItemsLoader<TItem, TReference> moreItemsLoader;
-    @Nullable
-    private Observable<?> loadingMoreConcreteObservable;
+    private Observable<LoadedItems<TItem, TReference>> loadingMoreConcreteObservable;
     @NonNull
-    private final BehaviorSubject<Boolean> hasMoreItems = BehaviorSubject.create(true);
+    private final BehaviorSubject<Integer> moreItemsCount = BehaviorSubject.create(LoadedItems.UNKNOWN_ITEMS_COUNT);
     @NonNull
     private final ObservableList<TItem> innerList = new ObservableList<>();
     private boolean removeDuplicates;
     @Nullable
     private TReference moreItemsReference;
 
-    public LoadingGrowingList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader) {
+    public OneWayLoadingList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader) {
+        this(moreItemsLoader, null);
+    }
+
+    public OneWayLoadingList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader,
+                             @Nullable final LoadedItems<TItem, TReference> initialItems) {
         super();
-        this.moreItemsLoader = moreItemsLoader;
+        this.loadingMoreConcreteObservable = Observable
+                .<LoadedItems<TItem, TReference>>switchOnNext(Observable.create(subscriber -> {
+                    subscriber.onNext(moreItemsLoader.load(new LoadRequest<>(moreItemsReference, Math.max(0, size() - 1))));
+                    subscriber.onCompleted();
+                }))
+                .subscribeOn(Schedulers.io())
+                .single()
+                .doOnError(throwable -> {
+                    if ((throwable instanceof IllegalArgumentException)
+                            || (throwable instanceof NoSuchElementException)) {
+                        Lc.assertion("Updates during loading not supported. ItemsLoader should emit only one result.");
+                    }
+                })
+                .observeOn(loaderScheduler)
+                .doOnNext(this::onItemsLoaded)
+                .replay(1)
+                .refCount();
+
+        if (initialItems != null) {
+            onItemsLoaded(initialItems);
+        }
     }
 
     @NonNull
@@ -70,7 +93,7 @@ public class LoadingGrowingList<TItem, TReference> extends ObservableCollection<
 
     @Override
     protected void notifyAboutChanges(@NonNull final Collection<Change<TItem>> changes) {
-        Lc.assertion("Illegal operation");
+        Lc.assertion("Illegal operation. Modify getInnerList()");
     }
 
     @NonNull
@@ -80,46 +103,26 @@ public class LoadingGrowingList<TItem, TReference> extends ObservableCollection<
 
     @NonNull
     public Observable<Boolean> observeHasMoreItems() {
-        return hasMoreItems.distinctUntilChanged();
+        return moreItemsCount.map(count -> count != 0).distinctUntilChanged();
+    }
+
+    @NonNull
+    public Observable<Integer> observeMoreItemsCount() {
+        return moreItemsCount.distinctUntilChanged();
     }
 
     public void setRemoveDuplicates(final boolean removeDuplicates) {
         this.removeDuplicates = removeDuplicates;
     }
 
-    @NonNull
-    private Observable<?> getLoadMoreObservable() {
-        return Observable
-                .switchOnNext(Observable.<Observable<?>>create(subscriber -> {
-                    if (loadingMoreConcreteObservable == null) {
-                        loadingMoreConcreteObservable = moreItemsLoader
-                                .load(new ItemsRequest<>(moreItemsReference, Math.max(0, size() - 1)))
-                                .subscribeOn(Schedulers.io())
-                                .observeOn(loaderScheduler)
-                                .single()
-                                .doOnError(throwable -> {
-                                    if ((throwable instanceof IllegalArgumentException)
-                                            || (throwable instanceof NoSuchElementException)) {
-                                        Lc.assertion("Updates during loading not supported. LoadingRequestCreator should emit only one result.");
-                                    }
-                                })
-                                .doOnNext(loadedItems -> {
-                                    moreItemsReference = loadedItems.getReference();
-                                    loadingMoreConcreteObservable = null;
-                                    final List<TItem> items = new ArrayList<>(loadedItems.getItems());
-                                    if (removeDuplicates) {
-                                        removeDuplicatesFromList(items);
-                                    }
-                                    innerList.addAll(items);
-                                    hasMoreItems.onNext(loadedItems.hasMoreItems());
-                                })
-                                .replay(1)
-                                .refCount();
-                    }
-                    subscriber.onNext(loadingMoreConcreteObservable);
-                    subscriber.onCompleted();
-                }))
-                .subscribeOn(loaderScheduler);
+    private void onItemsLoaded(@NonNull final LoadedItems<TItem, TReference> loadedItems) {
+        moreItemsReference = loadedItems.getReference();
+        final List<TItem> items = new ArrayList<>(loadedItems.getItems());
+        if (removeDuplicates) {
+            removeDuplicatesFromList(items);
+        }
+        innerList.addAll(items);
+        moreItemsCount.onNext(loadedItems.getMoreItemsCount());
     }
 
     private void removeDuplicatesFromList(@NonNull final List<TItem> items) {
@@ -158,29 +161,30 @@ public class LoadingGrowingList<TItem, TReference> extends ObservableCollection<
                         .<Observable<TItem>>create(subscriber -> {
                             if (position < size()) {
                                 subscriber.onNext(Observable.just(get(position)));
-                            } else if (!hasMoreItems.getValue()) {
+                            } else if (moreItemsCount.getValue() == 0) {
                                 subscriber.onNext(Observable.just((TItem) null));
                             } else {
-                                subscriber.onNext(getLoadMoreObservable().switchMap(ignored -> Observable.<TItem>error(new DoRetryException())));
+                                subscriber.onNext(loadingMoreConcreteObservable
+                                        .switchMap(ignored -> Observable.<TItem>error(new LoadMoreException())));
                             }
                             subscriber.onCompleted();
                         })
                         .subscribeOn(loaderScheduler))
                 .retryWhen(attempts -> attempts
-                        .switchMap(throwable -> throwable instanceof DoRetryException ? Observable.just(null) : Observable.error(throwable)));
+                        .switchMap(throwable -> throwable instanceof LoadMoreException ? Observable.just(null) : Observable.error(throwable)));
     }
 
     public void reset() {
         innerList.clear();
-        hasMoreItems.onNext(true);
+        moreItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
     }
 
     public void reset(@NonNull final Collection<TItem> initialItems) {
         innerList.set(initialItems);
-        hasMoreItems.onNext(true);
+        moreItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
     }
 
-    private static class DoRetryException extends Exception {
+    private static class LoadMoreException extends Exception {
     }
 
 }

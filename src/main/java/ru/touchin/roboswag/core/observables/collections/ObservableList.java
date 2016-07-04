@@ -21,6 +21,10 @@ package ru.touchin.roboswag.core.observables.collections;
 
 import android.support.annotation.NonNull;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,10 +36,10 @@ import rx.Observable;
  * Created by Gavriil Sitnikov on 23/05/16.
  * TODO: description
  */
-public class ObservableList<TItem> extends ObservableCollection<TItem> {
+public class ObservableList<TItem> extends ObservableCollection<TItem> implements Serializable {
 
     @NonNull
-    private final List<TItem> items;
+    private List<TItem> items;
 
     public ObservableList() {
         super();
@@ -51,7 +55,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         add(items.size(), item);
     }
 
-    public void add(final int position, @NonNull final TItem item) {
+    public synchronized void add(final int position, @NonNull final TItem item) {
         items.add(position, item);
         notifyAboutChange(new Change<>(Change.Type.INSERTED, Collections.singleton(item), position));
     }
@@ -60,9 +64,9 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         addAll(items.size(), itemsToAdd);
     }
 
-    public void addAll(final int position, @NonNull final Collection<TItem> itemsToAdd) {
-        items.addAll(position, itemsToAdd);
+    public synchronized void addAll(final int position, @NonNull final Collection<TItem> itemsToAdd) {
         if (!itemsToAdd.isEmpty()) {
+            items.addAll(position, itemsToAdd);
             notifyAboutChange(new Change<>(Change.Type.INSERTED, itemsToAdd, position));
         }
     }
@@ -71,7 +75,10 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         remove(position, 1);
     }
 
-    public void remove(final int position, final int count) {
+    public synchronized void remove(final int position, final int count) {
+        if (count == 0) {
+            return;
+        }
         final List<TItem> changedItems = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             changedItems.add(items.get(position));
@@ -80,23 +87,23 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         notifyAboutChange(new Change<>(Change.Type.REMOVED, changedItems, position));
     }
 
-    public void clear() {
+    public synchronized void clear() {
         final Change<TItem> change = new Change<>(Change.Type.REMOVED, items, 0);
-        items.clear();
         if (!change.getChangedItems().isEmpty()) {
+            items.clear();
             notifyAboutChange(change);
         }
     }
 
     @NonNull
     @Override
-    public TItem get(final int position) {
+    public synchronized TItem get(final int position) {
         return items.get(position);
     }
 
     @NonNull
     @Override
-    public Collection<TItem> getItems() {
+    public synchronized Collection<TItem> getItems() {
         return Collections.unmodifiableCollection(items);
     }
 
@@ -104,7 +111,10 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         update(position, Collections.singleton(item));
     }
 
-    public void update(final int position, @NonNull final Collection<TItem> updatedItems) {
+    public synchronized void update(final int position, @NonNull final Collection<TItem> updatedItems) {
+        if (updatedItems.isEmpty()) {
+            return;
+        }
         int index = position;
         for (final TItem item : updatedItems) {
             items.set(index, item);
@@ -113,7 +123,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
         notifyAboutChange(new Change<>(Change.Type.CHANGED, updatedItems, position));
     }
 
-    public void set(@NonNull final Collection<TItem> newItems) {
+    public synchronized void set(@NonNull final Collection<TItem> newItems) {
         final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(items, newItems, false);
         items.clear();
         items.addAll(newItems);
@@ -123,14 +133,27 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> {
     }
 
     @Override
-    public int size() {
+    public synchronized int size() {
         return items.size();
+    }
+
+    public synchronized int indexOf(@NonNull final TItem item) {
+        return items.indexOf(item);
     }
 
     @NonNull
     @Override
-    public Observable<TItem> loadItem(final int position) {
+    public synchronized Observable<TItem> loadItem(final int position) {
         return position < items.size() ? Observable.just(items.get(position)) : Observable.just(null);
+    }
+
+    private void writeObject(@NonNull final ObjectOutputStream outputStream) throws IOException {
+        outputStream.writeObject(items);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void readObject(@NonNull final ObjectInputStream inputStream) throws IOException, ClassNotFoundException {
+        items = (List<TItem>) inputStream.readObject();
     }
 
 }
