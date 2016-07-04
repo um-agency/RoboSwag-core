@@ -41,7 +41,7 @@ import rx.subjects.BehaviorSubject;
  * Created by Gavriil Sitnikov on 23/05/16.
  * TODO: description
  */
-public class OneWayLoadingList<TItem, TReference> extends ObservableCollection<TItem> {
+public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TItem> {
 
     @NonNull
     private final Scheduler loaderScheduler = RxAndroidUtils.createLooperScheduler();
@@ -55,14 +55,14 @@ public class OneWayLoadingList<TItem, TReference> extends ObservableCollection<T
     @Nullable
     private TReference moreItemsReference;
 
-    public OneWayLoadingList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader) {
+    public LoadingMoreList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader) {
         this(moreItemsLoader, null);
     }
 
     @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
     //ConstructorCallsOverridableMethod: actually it is calling in lambda callback
-    public OneWayLoadingList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader,
-                             @Nullable final LoadedItems<TItem, TReference> initialItems) {
+    public LoadingMoreList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader,
+                           @Nullable final LoadedItems<TItem, TReference> initialItems) {
         super();
         this.loadingMoreConcreteObservable = Observable
                 .<LoadedItems<TItem, TReference>>switchOnNext(Observable.create(subscriber -> {
