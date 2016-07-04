@@ -30,10 +30,9 @@ import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import ru.touchin.roboswag.core.log.Lc;
-
 import java.util.concurrent.CountDownLatch;
 
+import ru.touchin.roboswag.core.log.Lc;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;

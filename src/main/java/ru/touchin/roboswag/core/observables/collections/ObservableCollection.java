@@ -31,10 +31,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import ru.touchin.roboswag.core.utils.android.RxAndroidUtils;
 import rx.Observable;
 import rx.Subscriber;
-import rx.schedulers.Schedulers;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.

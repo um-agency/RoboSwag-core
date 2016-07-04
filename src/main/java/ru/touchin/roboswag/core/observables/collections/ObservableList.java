@@ -38,6 +38,8 @@ import rx.Observable;
  */
 public class ObservableList<TItem> extends ObservableCollection<TItem> implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     @NonNull
     private List<TItem> items;
 
@@ -55,19 +57,23 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         add(items.size(), item);
     }
 
-    public synchronized void add(final int position, @NonNull final TItem item) {
-        items.add(position, item);
-        notifyAboutChange(new Change<>(Change.Type.INSERTED, Collections.singleton(item), position));
+    public void add(final int position, @NonNull final TItem item) {
+        synchronized (this) {
+            items.add(position, item);
+            notifyAboutChange(new Change<>(Change.Type.INSERTED, Collections.singleton(item), position));
+        }
     }
 
     public void addAll(@NonNull final Collection<TItem> itemsToAdd) {
         addAll(items.size(), itemsToAdd);
     }
 
-    public synchronized void addAll(final int position, @NonNull final Collection<TItem> itemsToAdd) {
-        if (!itemsToAdd.isEmpty()) {
-            items.addAll(position, itemsToAdd);
-            notifyAboutChange(new Change<>(Change.Type.INSERTED, itemsToAdd, position));
+    public void addAll(final int position, @NonNull final Collection<TItem> itemsToAdd) {
+        synchronized (this) {
+            if (!itemsToAdd.isEmpty()) {
+                items.addAll(position, itemsToAdd);
+                notifyAboutChange(new Change<>(Change.Type.INSERTED, itemsToAdd, position));
+            }
         }
     }
 
@@ -75,76 +81,94 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         remove(position, 1);
     }
 
-    public synchronized void remove(final int position, final int count) {
+    public void remove(final int position, final int count) {
         if (count == 0) {
             return;
         }
-        final List<TItem> changedItems = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            changedItems.add(items.get(position));
-            items.remove(position);
+        synchronized (this) {
+            final List<TItem> changedItems = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
+                changedItems.add(items.get(position));
+                items.remove(position);
+            }
+            notifyAboutChange(new Change<>(Change.Type.REMOVED, changedItems, position));
         }
-        notifyAboutChange(new Change<>(Change.Type.REMOVED, changedItems, position));
     }
 
-    public synchronized void clear() {
-        final Change<TItem> change = new Change<>(Change.Type.REMOVED, items, 0);
-        if (!change.getChangedItems().isEmpty()) {
-            items.clear();
-            notifyAboutChange(change);
+    public void clear() {
+        synchronized (this) {
+            final Change<TItem> change = new Change<>(Change.Type.REMOVED, items, 0);
+            if (!change.getChangedItems().isEmpty()) {
+                items.clear();
+                notifyAboutChange(change);
+            }
         }
     }
 
     @NonNull
     @Override
-    public synchronized TItem get(final int position) {
-        return items.get(position);
+    public TItem get(final int position) {
+        synchronized (this) {
+            return items.get(position);
+        }
     }
 
     @NonNull
     @Override
-    public synchronized Collection<TItem> getItems() {
-        return Collections.unmodifiableCollection(items);
+    public Collection<TItem> getItems() {
+        synchronized (this) {
+            return Collections.unmodifiableCollection(items);
+        }
     }
 
     public void update(final int position, @NonNull final TItem item) {
         update(position, Collections.singleton(item));
     }
 
-    public synchronized void update(final int position, @NonNull final Collection<TItem> updatedItems) {
+    public void update(final int position, @NonNull final Collection<TItem> updatedItems) {
         if (updatedItems.isEmpty()) {
             return;
         }
         int index = position;
-        for (final TItem item : updatedItems) {
-            items.set(index, item);
-            index++;
+        synchronized (this) {
+            for (final TItem item : updatedItems) {
+                items.set(index, item);
+                index++;
+            }
+            notifyAboutChange(new Change<>(Change.Type.CHANGED, updatedItems, position));
         }
-        notifyAboutChange(new Change<>(Change.Type.CHANGED, updatedItems, position));
     }
 
-    public synchronized void set(@NonNull final Collection<TItem> newItems) {
-        final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(items, newItems, false);
-        items.clear();
-        items.addAll(newItems);
-        if (!changes.isEmpty()) {
-            notifyAboutChanges(changes);
+    public void set(@NonNull final Collection<TItem> newItems) {
+        synchronized (this) {
+            final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(items, newItems, false);
+            items.clear();
+            items.addAll(newItems);
+            if (!changes.isEmpty()) {
+                notifyAboutChanges(changes);
+            }
         }
     }
 
     @Override
-    public synchronized int size() {
-        return items.size();
+    public int size() {
+        synchronized (this) {
+            return items.size();
+        }
     }
 
-    public synchronized int indexOf(@NonNull final TItem item) {
-        return items.indexOf(item);
+    public int indexOf(@NonNull final TItem item) {
+        synchronized (this) {
+            return items.indexOf(item);
+        }
     }
 
     @NonNull
     @Override
-    public synchronized Observable<TItem> loadItem(final int position) {
-        return position < items.size() ? Observable.just(items.get(position)) : Observable.just(null);
+    public Observable<TItem> loadItem(final int position) {
+        synchronized (this) {
+            return position < items.size() ? Observable.just(items.get(position)) : Observable.just(null);
+        }
     }
 
     private void writeObject(@NonNull final ObjectOutputStream outputStream) throws IOException {

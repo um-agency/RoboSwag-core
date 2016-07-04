@@ -59,6 +59,8 @@ public class OneWayLoadingList<TItem, TReference> extends ObservableCollection<T
         this(moreItemsLoader, null);
     }
 
+    @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
+    //ConstructorCallsOverridableMethod: actually it is calling in lambda callback
     public OneWayLoadingList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader,
                              @Nullable final LoadedItems<TItem, TReference> initialItems) {
         super();
