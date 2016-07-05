@@ -78,12 +78,12 @@ public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TIt
                     }
                 })
                 .observeOn(loaderScheduler)
-                .doOnNext(this::onItemsLoaded)
+                .doOnNext(loadedItems -> onItemsLoaded(loadedItems, false))
                 .replay(1)
                 .refCount();
 
         if (initialItems != null) {
-            onItemsLoaded(initialItems);
+            onItemsLoaded(initialItems, false);
         }
     }
 
@@ -117,13 +117,17 @@ public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TIt
         this.removeDuplicates = removeDuplicates;
     }
 
-    private void onItemsLoaded(@NonNull final LoadedItems<TItem, TReference> loadedItems) {
+    private void onItemsLoaded(@NonNull final LoadedItems<TItem, TReference> loadedItems, final boolean reset) {
         moreItemsReference = loadedItems.getReference();
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
-        if (removeDuplicates) {
-            removeDuplicatesFromList(items);
+        if (!reset) {
+            if (removeDuplicates) {
+                removeDuplicatesFromList(items);
+            }
+            innerList.addAll(items);
+        } else {
+            innerList.set(items);
         }
-        innerList.addAll(items);
         moreItemsCount.onNext(loadedItems.getMoreItemsCount());
     }
 
@@ -181,9 +185,8 @@ public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TIt
         moreItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
     }
 
-    public void reset(@NonNull final Collection<TItem> initialItems) {
-        innerList.set(initialItems);
-        moreItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
+    public void reset(@NonNull final LoadedItems<TItem, TReference> initialItems) {
+        onItemsLoaded(initialItems, true);
     }
 
     private static class LoadMoreException extends Exception {
