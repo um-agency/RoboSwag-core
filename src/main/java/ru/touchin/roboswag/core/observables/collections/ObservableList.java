@@ -117,7 +117,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
     @Override
     public Collection<TItem> getItems() {
         synchronized (this) {
-            return Collections.unmodifiableCollection(items);
+            return Collections.unmodifiableCollection(new ArrayList<>(items));
         }
     }
 
