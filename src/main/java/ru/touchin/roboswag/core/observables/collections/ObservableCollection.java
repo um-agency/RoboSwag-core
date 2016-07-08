@@ -43,11 +43,26 @@ public abstract class ObservableCollection<TItem> implements Serializable {
     private int changesCount;
     @NonNull
     private transient Observable<CollectionChange<TItem>> changesObservable;
+    @NonNull
+    private transient Observable<Collection<TItem>> itemsObservable;
     @Nullable
-    public transient Subscriber<? super CollectionChange<TItem>> changesSubscriber;
+    private transient Subscriber<? super CollectionChange<TItem>> changesSubscriber;
 
     public ObservableCollection() {
         this.changesObservable = createChangesObservable();
+        this.itemsObservable = createItemsObservable();
+    }
+
+    @NonNull
+    protected Observable<Collection<TItem>> createItemsObservable() {
+        return Observable
+                .<Collection<TItem>>create(subscriber -> {
+                    subscriber.onNext(getItems());
+                    subscriber.onCompleted();
+                })
+                .concatWith(changesObservable.map(changes -> getItems()))
+                .replay(1)
+                .refCount();
     }
 
     @NonNull
@@ -85,6 +100,11 @@ public abstract class ObservableCollection<TItem> implements Serializable {
     @NonNull
     public abstract Collection<TItem> getItems();
 
+    @NonNull
+    public Observable<Collection<TItem>> observeItems() {
+        return itemsObservable;
+    }
+
     public abstract int size();
 
     public boolean isEmpty() {
@@ -113,6 +133,7 @@ public abstract class ObservableCollection<TItem> implements Serializable {
     private void readObject(@NonNull final ObjectInputStream inputStream) throws IOException, ClassNotFoundException {
         changesCount = inputStream.readInt();
         this.changesObservable = createChangesObservable();
+        this.itemsObservable = createItemsObservable();
     }
 
     public static class CollectionChange<TItem> {
