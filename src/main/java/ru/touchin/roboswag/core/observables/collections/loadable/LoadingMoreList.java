@@ -31,6 +31,7 @@ import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.observables.collections.Change;
 import ru.touchin.roboswag.core.observables.collections.ObservableCollection;
 import ru.touchin.roboswag.core.observables.collections.ObservableList;
+import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 import ru.touchin.roboswag.core.utils.android.RxAndroidUtils;
 import rx.Observable;
 import rx.Scheduler;
@@ -74,7 +75,8 @@ public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TIt
                 .doOnError(throwable -> {
                     if ((throwable instanceof IllegalArgumentException)
                             || (throwable instanceof NoSuchElementException)) {
-                        Lc.assertion("Updates during loading not supported. ItemsLoader should emit only one result.");
+                        Lc.assertion(new ShouldNotHappenException("Updates during loading not supported. ItemsLoader should emit only one result.",
+                                throwable));
                     }
                 })
                 .observeOn(loaderScheduler)
