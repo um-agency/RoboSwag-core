@@ -54,7 +54,7 @@ public abstract class ObservableCollection<TItem> implements Serializable {
     }
 
     @NonNull
-    protected Observable<Collection<TItem>> createItemsObservable() {
+    private Observable<Collection<TItem>> createItemsObservable() {
         return Observable
                 .<Collection<TItem>>create(subscriber -> {
                     subscriber.onNext(getItems());
