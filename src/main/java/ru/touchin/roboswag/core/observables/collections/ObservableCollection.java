@@ -54,23 +54,23 @@ public abstract class ObservableCollection<TItem> implements Serializable {
     }
 
     @NonNull
+    private Observable<CollectionChange<TItem>> createChangesObservable() {
+        return Observable
+                .<CollectionChange<TItem>>create(subscriber -> this.changesSubscriber = subscriber)
+                .doOnUnsubscribe(() -> this.changesSubscriber = null)
+                .replay(0)
+                .refCount();
+    }
+
+    @NonNull
     private Observable<Collection<TItem>> createItemsObservable() {
         return Observable
                 .<Collection<TItem>>create(subscriber -> {
                     subscriber.onNext(getItems());
                     subscriber.onCompleted();
                 })
-                .concatWith(changesObservable.map(changes -> getItems()))
+                .switchMap(ignored -> observeChanges().map(changes -> getItems()))
                 .replay(1)
-                .refCount();
-    }
-
-    @NonNull
-    private Observable<CollectionChange<TItem>> createChangesObservable() {
-        return Observable
-                .<CollectionChange<TItem>>create(subscriber -> this.changesSubscriber = subscriber)
-                .doOnUnsubscribe(() -> this.changesSubscriber = null)
-                .replay(0)
                 .refCount();
     }
 
