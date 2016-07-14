@@ -105,6 +105,10 @@ public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TIt
         return innerList;
     }
 
+    public boolean hasMoreItems() {
+        return moreItemsCount.getValue() != 0;
+    }
+
     @NonNull
     public Observable<Boolean> observeHasMoreItems() {
         return moreItemsCount.map(count -> count != 0).distinctUntilChanged();
