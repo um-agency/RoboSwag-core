@@ -64,7 +64,7 @@ public class NonNullSafeStorableBuilder<TKey, TObject, TStoreObject> extends Sto
      * @return New {@link NonNullSafeStorable}.
      */
     @NonNull
-    public Storable<TKey, TObject, TStoreObject> build() {
+    public NonNullSafeStorable<TKey, TObject, TStoreObject> build() {
         if (!(getStore() instanceof SafeStore) || !(getConverter() instanceof SafeConverter)) {
             throw new ShouldNotHappenException();
         }
