@@ -65,11 +65,10 @@ public abstract class ObservableCollection<TItem> implements Serializable {
     @NonNull
     private Observable<Collection<TItem>> createItemsObservable() {
         return Observable
-                .<Collection<TItem>>create(subscriber -> {
-                    subscriber.onNext(getItems());
+                .<Collection<TItem>>switchOnNext(Observable.create(subscriber -> {
+                    subscriber.onNext(observeChanges().map(changes -> getItems()).startWith(getItems()));
                     subscriber.onCompleted();
-                })
-                .switchMap(initialItems -> observeChanges().map(changes -> getItems()).startWith(initialItems))
+                }))
                 .replay(1)
                 .refCount();
     }
