@@ -23,9 +23,9 @@ import android.support.annotation.NonNull;
 
 import rx.Observable;
 
-public interface ItemsLoader<TItem, TReference> {
+public interface ItemsLoader<TItem, TReference, TLoadedItems extends LoadedItems<TItem, TReference>> {
 
     @NonNull
-    Observable<LoadedItems<TItem,TReference>> load(@NonNull final LoadRequest<TReference> loadRequest);
+    Observable<TLoadedItems> load(@NonNull final LoadRequest<TReference> loadRequest);
 
 }

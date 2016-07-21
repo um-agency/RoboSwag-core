@@ -42,12 +42,13 @@ import rx.subjects.BehaviorSubject;
  * Created by Gavriil Sitnikov on 23/05/16.
  * TODO: description
  */
-public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TItem> {
+public class LoadingMoreList<TItem, TReference, TLoadedItems extends LoadedItems<TItem, TReference>>
+        extends ObservableCollection<TItem> {
 
     @NonNull
     private final Scheduler loaderScheduler = RxAndroidUtils.createLooperScheduler();
     @NonNull
-    private Observable<LoadedItems<TItem, TReference>> loadingMoreConcreteObservable;
+    private Observable<TLoadedItems> loadingMoreConcreteObservable;
     @NonNull
     private final BehaviorSubject<Integer> moreItemsCount = BehaviorSubject.create(LoadedItems.UNKNOWN_ITEMS_COUNT);
     @NonNull
@@ -56,17 +57,17 @@ public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TIt
     @Nullable
     private TReference moreItemsReference;
 
-    public LoadingMoreList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader) {
+    public LoadingMoreList(@NonNull final ItemsLoader<TItem, TReference, TLoadedItems> moreItemsLoader) {
         this(moreItemsLoader, null);
     }
 
     @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
     //ConstructorCallsOverridableMethod: actually it is calling in lambda callback
-    public LoadingMoreList(@NonNull final ItemsLoader<TItem, TReference> moreItemsLoader,
-                           @Nullable final LoadedItems<TItem, TReference> initialItems) {
+    public LoadingMoreList(@NonNull final ItemsLoader<TItem, TReference, TLoadedItems> moreItemsLoader,
+                           @Nullable final TLoadedItems initialItems) {
         super();
         this.loadingMoreConcreteObservable = Observable
-                .<LoadedItems<TItem, TReference>>switchOnNext(Observable.create(subscriber -> {
+                .<TLoadedItems>switchOnNext(Observable.create(subscriber -> {
                     subscriber.onNext(moreItemsLoader.load(new LoadRequest<>(moreItemsReference, Math.max(0, size() - 1))));
                     subscriber.onCompleted();
                 }))
@@ -123,7 +124,7 @@ public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TIt
         this.removeDuplicates = removeDuplicates;
     }
 
-    private void onItemsLoaded(@NonNull final LoadedItems<TItem, TReference> loadedItems, final boolean reset) {
+    protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final boolean reset) {
         moreItemsReference = loadedItems.getReference();
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
         if (!reset) {
@@ -191,7 +192,7 @@ public class LoadingMoreList<TItem, TReference> extends ObservableCollection<TIt
         moreItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
     }
 
-    public void reset(@NonNull final LoadedItems<TItem, TReference> initialItems) {
+    public void reset(@NonNull final TLoadedItems initialItems) {
         onItemsLoaded(initialItems, true);
     }
 
