@@ -68,7 +68,7 @@ public class LoadingMoreList<TItem, TReference, TLoadedItems extends LoadedItems
         super();
         this.loadingMoreConcreteObservable = Observable
                 .<TLoadedItems>switchOnNext(Observable.create(subscriber -> {
-                    subscriber.onNext(moreItemsLoader.load(new LoadRequest<>(moreItemsReference, Math.max(0, size() - 1))));
+                    subscriber.onNext(moreItemsLoader.load(new LoadRequest<>(moreItemsReference, Math.max(0, size()))));
                     subscriber.onCompleted();
                 }))
                 .subscribeOn(Schedulers.io())

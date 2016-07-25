@@ -25,11 +25,11 @@ public class LoadRequest<TReference> {
 
     @Nullable
     private final TReference reference;
-    private final int position;
+    private final int nextPosition;
 
-    public LoadRequest(@Nullable final TReference reference, final int position) {
+    public LoadRequest(@Nullable final TReference reference, final int nextPosition) {
         this.reference = reference;
-        this.position = position;
+        this.nextPosition = nextPosition;
     }
 
     @Nullable
@@ -37,8 +37,8 @@ public class LoadRequest<TReference> {
         return reference;
     }
 
-    public int getPosition() {
-        return position;
+    public int getNextPosition() {
+        return nextPosition;
     }
 
 }
