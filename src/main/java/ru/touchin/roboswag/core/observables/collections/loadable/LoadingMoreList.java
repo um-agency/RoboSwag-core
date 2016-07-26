@@ -42,36 +42,36 @@ import rx.subjects.BehaviorSubject;
  * Created by Gavriil Sitnikov on 23/05/16.
  * TODO: description
  */
-public class LoadingMoreList<TItem, TReference, TLoadedItems extends LoadedItems<TItem, TReference>>
+public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedItems<TItem, TMoreReference>>
         extends ObservableCollection<TItem> {
 
     @NonNull
     private final Scheduler loaderScheduler = RxAndroidUtils.createLooperScheduler();
     @NonNull
-    private Observable<TLoadedItems> loadingMoreConcreteObservable;
+    private Observable<TLoadedItems> loadingMoreObservable;
     @NonNull
     private final BehaviorSubject<Integer> moreItemsCount = BehaviorSubject.create(LoadedItems.UNKNOWN_ITEMS_COUNT);
     @NonNull
     private final ObservableList<TItem> innerList = new ObservableList<>();
     private boolean removeDuplicates;
     @Nullable
-    private TReference moreItemsReference;
+    private TMoreReference moreItemsReference;
 
-    public LoadingMoreList(@NonNull final MoreItemsLoader<TItem, TReference, TLoadedItems> moreMoreItemsLoader) {
+    public LoadingMoreList(@NonNull final MoreItemsLoader<TItem, TMoreReference, TLoadedItems> moreMoreItemsLoader) {
         this(moreMoreItemsLoader, null);
     }
 
     @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
     //ConstructorCallsOverridableMethod: actually it is calling in lambda callback
-    public LoadingMoreList(@NonNull final MoreItemsLoader<TItem, TReference, TLoadedItems> moreMoreItemsLoader,
+    public LoadingMoreList(@NonNull final MoreItemsLoader<TItem, TMoreReference, TLoadedItems> moreMoreItemsLoader,
                            @Nullable final TLoadedItems initialItems) {
         super();
-        this.loadingMoreConcreteObservable = Observable
-                .<TLoadedItems>switchOnNext(Observable.create(subscriber -> {
-                    subscriber.onNext(moreMoreItemsLoader.load(new MoreLoadRequest<>(moreItemsReference, Math.max(0, size()))));
+        this.loadingMoreObservable = Observable
+                .switchOnNext(Observable.<Observable<TLoadedItems>>create(subscriber -> {
+                    subscriber.onNext(moreMoreItemsLoader.load(new MoreLoadRequest<>(moreItemsReference, Math.max(0, size())))
+                            .subscribeOn(Schedulers.io()));
                     subscriber.onCompleted();
-                }))
-                .subscribeOn(Schedulers.io())
+                }).subscribeOn(loaderScheduler))
                 .single()
                 .doOnError(throwable -> {
                     if ((throwable instanceof IllegalArgumentException)
@@ -176,6 +176,11 @@ public class LoadingMoreList<TItem, TReference, TLoadedItems extends LoadedItems
     }
 
     @NonNull
+    protected Observable<TLoadedItems> getLoadingMoreObservable() {
+        return loadingMoreObservable;
+    }
+
+    @NonNull
     @Override
     public Observable<TItem> loadItem(final int position) {
         return Observable
@@ -186,7 +191,7 @@ public class LoadingMoreList<TItem, TReference, TLoadedItems extends LoadedItems
                             } else if (moreItemsCount.getValue() == 0) {
                                 subscriber.onNext(Observable.just((TItem) null));
                             } else {
-                                subscriber.onNext(loadingMoreConcreteObservable
+                                subscriber.onNext(loadingMoreObservable
                                         .switchMap(ignored -> Observable.<TItem>error(new NotLoadedYetException())));
                             }
                             subscriber.onCompleted();

@@ -21,20 +21,20 @@ package ru.touchin.roboswag.core.observables.collections.loadable;
 
 import android.support.annotation.Nullable;
 
-public class MoreLoadRequest<TReference> {
+public class MoreLoadRequest<TMoreReference> {
 
     @Nullable
-    private final TReference reference;
+    private final TMoreReference moreReference;
     private final int nextPosition;
 
-    public MoreLoadRequest(@Nullable final TReference reference, final int nextPosition) {
-        this.reference = reference;
+    public MoreLoadRequest(@Nullable final TMoreReference moreReference, final int nextPosition) {
+        this.moreReference = moreReference;
         this.nextPosition = nextPosition;
     }
 
     @Nullable
-    public TReference getReference() {
-        return reference;
+    public TMoreReference getReference() {
+        return moreReference;
     }
 
     public int getNextPosition() {

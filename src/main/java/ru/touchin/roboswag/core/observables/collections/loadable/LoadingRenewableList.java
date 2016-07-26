@@ -71,15 +71,18 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
             @NonNull final NewerItemsLoader<TItem, TReference, TNewerReference, TLoadedItems> newerItemsLoader,
             final boolean renew) {
         return Observable
-                .<TLoadedItems>switchOnNext(Observable.create(subscriber -> {
-                    if (!renew) {
-                        subscriber.onNext(newerItemsLoader.load(new NewerLoadRequest<>(newerReference, newerItemsCount.getValue())));
+                .switchOnNext(Observable.<Observable<TLoadedItems>>create(subscriber -> {
+                    if (newerReference == null && isEmpty()) {
+                        subscriber.onNext(getLoadingMoreObservable());
+                    } else if (!renew) {
+                        subscriber.onNext(newerItemsLoader.load(new NewerLoadRequest<>(newerReference, newerItemsCount.getValue()))
+                                .subscribeOn(Schedulers.io()));
                     } else {
-                        subscriber.onNext(newerItemsLoader.load(new NewerLoadRequest<>(null, LoadedItems.UNKNOWN_ITEMS_COUNT)));
+                        subscriber.onNext(newerItemsLoader.load(new NewerLoadRequest<>(null, LoadedItems.UNKNOWN_ITEMS_COUNT))
+                                .subscribeOn(Schedulers.io()));
                     }
                     subscriber.onCompleted();
-                }))
-                .subscribeOn(Schedulers.io())
+                }).subscribeOn(getLoaderScheduler()))
                 .single()
                 .doOnError(throwable -> {
                     if ((throwable instanceof IllegalArgumentException)
