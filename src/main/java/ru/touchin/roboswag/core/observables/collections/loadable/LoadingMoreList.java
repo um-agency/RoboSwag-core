@@ -76,8 +76,8 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
                 .doOnError(throwable -> {
                     if ((throwable instanceof IllegalArgumentException)
                             || (throwable instanceof NoSuchElementException)) {
-                        Lc.assertion(new ShouldNotHappenException("Updates during loading not supported. MoreItemsLoader should emit only one result.",
-                                throwable));
+                        Lc.assertion(new ShouldNotHappenException("Updates during loading not supported."
+                                + " MoreItemsLoader should emit only one result.", throwable));
                     }
                 })
                 .observeOn(loaderScheduler)

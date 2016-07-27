@@ -51,6 +51,8 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
     @NonNull
     private final Observable<TLoadedItems> loadingNewestObservable;
 
+    @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
+    //TODO
     public LoadingRenewableList(@NonNull final MoreItemsLoader<TItem, TReference, TLoadedItems> moreMoreItemsLoader,
                                 @NonNull final NewerItemsLoader<TItem, TReference, TNewerReference, TLoadedItems> newerItemsLoader) {
         super(moreMoreItemsLoader);
@@ -58,6 +60,8 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
         this.loadingNewestObservable = createLoadingNewerObservable(newerItemsLoader, true);
     }
 
+    @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
+    //TODO
     public LoadingRenewableList(@NonNull final MoreItemsLoader<TItem, TReference, TLoadedItems> moreMoreItemsLoader,
                                 @NonNull final NewerItemsLoader<TItem, TReference, TNewerReference, TLoadedItems> newerItemsLoader,
                                 @Nullable final TLoadedItems initialItems) {
@@ -87,9 +91,8 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
                 .doOnError(throwable -> {
                     if ((throwable instanceof IllegalArgumentException)
                             || (throwable instanceof NoSuchElementException)) {
-                        Lc.assertion(new ShouldNotHappenException("Updates during loading not supported." +
-                                " NewerItemsLoader should emit only one result.",
-                                throwable));
+                        Lc.assertion(new ShouldNotHappenException("Updates during loading not supported."
+                                + " NewerItemsLoader should emit only one result.", throwable));
                     }
                 })
                 .observeOn(getLoaderScheduler())
