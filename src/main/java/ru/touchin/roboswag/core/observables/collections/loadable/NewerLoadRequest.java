@@ -21,6 +21,8 @@ package ru.touchin.roboswag.core.observables.collections.loadable;
 
 import android.support.annotation.Nullable;
 
+import ru.touchin.roboswag.core.utils.ObjectUtils;
+
 public class NewerLoadRequest<TNewerReference> {
 
     @Nullable
@@ -39,6 +41,18 @@ public class NewerLoadRequest<TNewerReference> {
 
     public int getNewerItemsCount() {
         return newerItemsCount;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        return obj instanceof NewerLoadRequest
+                && ObjectUtils.equals(((NewerLoadRequest) obj).newerReference, newerReference)
+                && ((NewerLoadRequest) obj).newerItemsCount == newerItemsCount;
+    }
+
+    @Override
+    public int hashCode() {
+        return newerItemsCount + (newerReference != null ? newerReference.hashCode() : 0);
     }
 
 }

@@ -35,6 +35,9 @@ import ru.touchin.roboswag.core.observables.collections.ObservableList;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 import rx.Observable;
 import rx.Scheduler;
+import rx.exceptions.OnErrorThrowable;
+import rx.functions.Func0;
+import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import rx.subjects.BehaviorSubject;
 
@@ -44,6 +47,8 @@ import rx.subjects.BehaviorSubject;
  */
 public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedItems<TItem, TMoreReference>>
         extends ObservableCollection<TItem> {
+
+    private static final int RETRY_LOADING_AFTER_CHANGE_COUNT = 5;
 
     @NonNull
     private final Scheduler loaderScheduler = RxAndroidUtils.createLooperScheduler();
@@ -68,19 +73,16 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         super();
         this.loadingMoreObservable = Observable
                 .switchOnNext(Observable.<Observable<TLoadedItems>>create(subscriber -> {
-                    subscriber.onNext(moreMoreItemsLoader.load(new MoreLoadRequest<>(moreItemsReference, Math.max(0, size())))
-                            .subscribeOn(Schedulers.io()));
+                    subscriber.onNext(createLoadRequestBasedObservable(this::createActualRequest, moreMoreItemsLoader::load));
                     subscriber.onCompleted();
-                }).subscribeOn(loaderScheduler))
+                }))
                 .single()
                 .doOnError(throwable -> {
-                    if ((throwable instanceof IllegalArgumentException)
-                            || (throwable instanceof NoSuchElementException)) {
+                    if (throwable instanceof IllegalArgumentException || throwable instanceof NoSuchElementException) {
                         Lc.assertion(new ShouldNotHappenException("Updates during loading not supported."
                                 + " MoreItemsLoader should emit only one result.", throwable));
                     }
                 })
-                .observeOn(loaderScheduler)
                 .doOnNext(loadedItems -> onItemsLoaded(loadedItems, false))
                 .replay(1)
                 .refCount();
@@ -88,6 +90,26 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         if (initialItems != null) {
             onItemsLoaded(initialItems, false);
         }
+    }
+
+    private MoreLoadRequest<TMoreReference> createActualRequest() {
+        return new MoreLoadRequest<>(moreItemsReference, Math.max(0, size()));
+    }
+
+    protected <T, TRequest> Observable<T> createLoadRequestBasedObservable(@NonNull final Func0<TRequest> requestCreator,
+                                                                           @NonNull final Func1<TRequest, Observable<T>> observableCreator) {
+        return Observable
+                .fromCallable(requestCreator)
+                .switchMap(loadRequest -> observableCreator.call(loadRequest)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(loaderScheduler)
+                        .doOnNext(ignored -> {
+                            if (!requestCreator.call().equals(loadRequest)) {
+                                throw OnErrorThrowable.from(new RequestChangedDuringLoadingException());
+                            }
+                        })
+                        .retry((number, throwable) -> number <= RETRY_LOADING_AFTER_CHANGE_COUNT
+                                && throwable instanceof RequestChangedDuringLoadingException));
     }
 
     @NonNull
@@ -134,7 +156,6 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
     }
 
     protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final boolean reset) {
-        moreItemsReference = loadedItems.getReference();
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
         if (!reset) {
             if (removeDuplicates) {
@@ -142,12 +163,14 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
             }
             innerList.addAll(items);
         } else {
+            resetState();
             innerList.set(items);
         }
+        moreItemsReference = loadedItems.getReference();
         moreItemsCount.onNext(loadedItems.getMoreItemsCount());
     }
 
-    protected void removeDuplicatesFromList(@NonNull final List<TItem> items) {
+    private void removeDuplicatesFromList(@NonNull final List<TItem> items) {
         for (int i = items.size() - 1; i >= 0; i--) {
             for (int j = 0; j < innerList.size(); j++) {
                 if (innerList.get(j).equals(items.get(i))) {
@@ -191,26 +214,32 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
                             } else if (moreItemsCount.getValue() == 0) {
                                 subscriber.onNext(Observable.just((TItem) null));
                             } else {
-                                subscriber.onNext(loadingMoreObservable
-                                        .switchMap(ignored -> Observable.<TItem>error(new NotLoadedYetException())));
+                                subscriber.onNext(loadingMoreObservable.switchMap(ignored -> Observable.<TItem>error(new NotLoadedYetException())));
                             }
                             subscriber.onCompleted();
                         })
                         .subscribeOn(loaderScheduler))
-                .retryWhen(attempts -> attempts
-                        .switchMap(throwable -> throwable instanceof NotLoadedYetException ? Observable.just(null) : Observable.error(throwable)));
+                .retry((number, throwable) -> throwable instanceof NotLoadedYetException);
     }
 
     public void reset() {
         innerList.clear();
-        moreItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
+        resetState();
     }
 
     public void reset(@NonNull final TLoadedItems initialItems) {
         onItemsLoaded(initialItems, true);
     }
 
+    protected void resetState() {
+        moreItemsReference = null;
+        moreItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
+    }
+
     protected static class NotLoadedYetException extends Exception {
+    }
+
+    protected static class RequestChangedDuringLoadingException extends Exception {
     }
 
 }

@@ -22,8 +22,6 @@ package ru.touchin.roboswag.core.observables.collections.loadable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 import ru.touchin.roboswag.core.log.Lc;
@@ -71,37 +69,43 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
     }
 
     @NonNull
+    private Observable<TLoadedItems> waitForInitialLoading(@NonNull final Observable<TLoadedItems> observable) {
+        return getLoadingMoreObservable().ignoreElements().concatWith(observable);
+    }
+
+    private NewerLoadRequest<TNewerReference> createActualRequest() {
+        return new NewerLoadRequest<>(newerReference, newerItemsCount.getValue());
+    }
+
+    @NonNull
     private Observable<TLoadedItems> createLoadingNewerObservable(
             @NonNull final NewerItemsLoader<TItem, TReference, TNewerReference, TLoadedItems> newerItemsLoader,
             final boolean renew) {
         return Observable
                 .switchOnNext(Observable.<Observable<TLoadedItems>>create(subscriber -> {
-                    if (newerReference == null && isEmpty()) {
-                        subscriber.onNext(getLoadingMoreObservable());
-                    } else if (!renew) {
-                        subscriber.onNext(newerItemsLoader.load(new NewerLoadRequest<>(newerReference, newerItemsCount.getValue()))
-                                .subscribeOn(Schedulers.io()));
+                    if (!renew) {
+                        subscriber.onNext(createLoadRequestBasedObservable(this::createActualRequest,
+                                loadRequest -> loadRequest.getNewerReference() == null && isEmpty()
+                                        ? waitForInitialLoading(newerItemsLoader.load(loadRequest))
+                                        : newerItemsLoader.load(loadRequest)));
                     } else {
                         subscriber.onNext(newerItemsLoader.load(new NewerLoadRequest<>(null, LoadedItems.UNKNOWN_ITEMS_COUNT))
-                                .subscribeOn(Schedulers.io()));
+                                .subscribeOn(Schedulers.io())
+                                .observeOn(getLoaderScheduler()));
                     }
                     subscriber.onCompleted();
-                }).subscribeOn(getLoaderScheduler()))
+                }))
                 .single()
                 .doOnError(throwable -> {
-                    if ((throwable instanceof IllegalArgumentException)
-                            || (throwable instanceof NoSuchElementException)) {
+                    if (throwable instanceof IllegalArgumentException || throwable instanceof NoSuchElementException) {
                         Lc.assertion(new ShouldNotHappenException("Updates during loading not supported."
                                 + " NewerItemsLoader should emit only one result.", throwable));
                     }
                 })
-                .observeOn(getLoaderScheduler())
                 .doOnNext(loadedItems -> {
-                    if (getInnerList().isEmpty()) {
-                        onItemsLoaded(loadedItems, false);
-                    } else {
-                        onNewerItemsLoaded(loadedItems, renew);
-                    }
+                    onItemsLoaded(loadedItems, renew);
+                    onNewerItemsLoaded(loadedItems, renew);
+                    updateNewerReference(loadedItems);
                 })
                 .replay(1)
                 .refCount();
@@ -129,17 +133,15 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
         }
     }
 
-    protected void onNewerItemsLoaded(@NonNull final TLoadedItems loadedItems, final boolean reset) {
-        final List<TItem> items = new ArrayList<>(loadedItems.getItems());
-        if (!reset) {
-            if (isRemoveDuplicates()) {
-                removeDuplicatesFromList(items);
-            }
-            getInnerList().addAll(0, items);
-        } else {
-            getInnerList().set(items);
-        }
-        updateNewerReference(loadedItems);
+    protected void onNewerItemsLoaded(@NonNull final TLoadedItems loadedItems, final boolean renew) {
+        // do nothing
+    }
+
+    @Override
+    protected void resetState() {
+        super.resetState();
+        newerReference = null;
+        newerItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
     }
 
     @NonNull
@@ -155,15 +157,7 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
                         throw OnErrorThrowable.from(new NotLoadedYetException());
                     }
                 })
-                .retryWhen(attempts -> attempts
-                        .zipWith(Observable.range(1, maxPageDeep),
-                                (throwable, integer) -> {
-                                    if (integer == maxPageDeep) {
-                                        throw OnErrorThrowable.from(new TooMuchNewerLoadsException());
-                                    }
-                                    return throwable;
-                                })
-                        .switchMap(throwable -> throwable instanceof NotLoadedYetException ? Observable.just(null) : Observable.error(throwable)))
+                .retry((number, throwable) -> number <= maxPageDeep && throwable instanceof NotLoadedYetException)
                 .last();
     }
 
@@ -175,9 +169,6 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
     private void updateNewerReference(@NonNull final TLoadedItems loadedItems) {
         newerReference = loadedItems.getNewerReference();
         newerItemsCount.onNext(loadedItems.getNewerItemsCount());
-    }
-
-    protected static class TooMuchNewerLoadsException extends Exception {
     }
 
 }

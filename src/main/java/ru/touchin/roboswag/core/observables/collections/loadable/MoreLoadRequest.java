@@ -21,6 +21,8 @@ package ru.touchin.roboswag.core.observables.collections.loadable;
 
 import android.support.annotation.Nullable;
 
+import ru.touchin.roboswag.core.utils.ObjectUtils;
+
 public class MoreLoadRequest<TMoreReference> {
 
     @Nullable
@@ -39,6 +41,18 @@ public class MoreLoadRequest<TMoreReference> {
 
     public int getNextPosition() {
         return nextPosition;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        return obj instanceof MoreLoadRequest
+                && ObjectUtils.equals(((MoreLoadRequest) obj).moreReference, moreReference)
+                && ((MoreLoadRequest) obj).nextPosition == nextPosition;
+    }
+
+    @Override
+    public int hashCode() {
+        return nextPosition + (moreReference != null ? moreReference.hashCode() : 0);
     }
 
 }
