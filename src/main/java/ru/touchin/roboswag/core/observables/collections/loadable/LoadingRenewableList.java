@@ -103,7 +103,7 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
                     }
                 })
                 .doOnNext(loadedItems -> {
-                    onItemsLoaded(loadedItems, renew);
+                    onItemsLoaded(loadedItems, 0, renew);
                     onNewerItemsLoaded(loadedItems, renew);
                     updateNewerReference(loadedItems);
                 })
@@ -126,8 +126,8 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
     }
 
     @Override
-    protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final boolean reset) {
-        super.onItemsLoaded(loadedItems, reset);
+    protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
+        super.onItemsLoaded(loadedItems, insertPosition, reset);
         if (newerReference == null) {
             updateNewerReference(loadedItems);
         }

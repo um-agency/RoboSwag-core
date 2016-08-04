@@ -83,12 +83,12 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
                                 + " MoreItemsLoader should emit only one result.", throwable));
                     }
                 })
-                .doOnNext(loadedItems -> onItemsLoaded(loadedItems, false))
+                .doOnNext(loadedItems -> onItemsLoaded(loadedItems, size(), false))
                 .replay(1)
                 .refCount();
 
         if (initialItems != null) {
-            onItemsLoaded(initialItems, false);
+            onItemsLoaded(initialItems, 0, false);
         }
     }
 
@@ -155,13 +155,13 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         this.removeDuplicates = removeDuplicates;
     }
 
-    protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final boolean reset) {
+    protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
         if (!reset) {
             if (removeDuplicates) {
                 removeDuplicatesFromList(items);
             }
-            innerList.addAll(items);
+            innerList.addAll(insertPosition, items);
         } else {
             resetState();
             innerList.set(items);
@@ -228,7 +228,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
     }
 
     public void reset(@NonNull final TLoadedItems initialItems) {
-        onItemsLoaded(initialItems, true);
+        onItemsLoaded(initialItems, 0, true);
     }
 
     protected void resetState() {
