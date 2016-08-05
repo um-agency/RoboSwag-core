@@ -157,6 +157,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
 
     protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
+        final boolean lastPage = insertPosition > size() - 1;
         if (!reset) {
             if (removeDuplicates) {
                 removeDuplicatesFromList(items);
@@ -166,8 +167,10 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
             resetState();
             innerList.set(items);
         }
-        moreItemsReference = loadedItems.getReference();
-        moreItemsCount.onNext(loadedItems.getMoreItemsCount());
+        if (lastPage) {
+            moreItemsReference = loadedItems.getReference();
+            moreItemsCount.onNext(loadedItems.getMoreItemsCount());
+        }
     }
 
     private void removeDuplicatesFromList(@NonNull final List<TItem> items) {

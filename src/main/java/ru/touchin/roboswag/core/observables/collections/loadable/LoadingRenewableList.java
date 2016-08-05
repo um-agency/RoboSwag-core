@@ -105,7 +105,6 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
                 .doOnNext(loadedItems -> {
                     onItemsLoaded(loadedItems, 0, renew);
                     onNewerItemsLoaded(loadedItems, renew);
-                    updateNewerReference(loadedItems);
                 })
                 .replay(1)
                 .refCount();
@@ -134,7 +133,7 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
     }
 
     protected void onNewerItemsLoaded(@NonNull final TLoadedItems loadedItems, final boolean renew) {
-        // do nothing
+        updateNewerReference(loadedItems);
     }
 
     @Override
