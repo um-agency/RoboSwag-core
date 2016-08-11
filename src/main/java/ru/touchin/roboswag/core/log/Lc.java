@@ -113,7 +113,7 @@ public final class Lc {
      * @param args      Arguments of formatted message.
      */
     public static void d(@NonNull final Throwable throwable, @NonNull final String message, @NonNull final Object... args) {
-        GENERAL_LC_GROUP.d(message, throwable, args);
+        GENERAL_LC_GROUP.d(throwable, message, args);
     }
 
     /**
@@ -134,7 +134,7 @@ public final class Lc {
      * @param args      Arguments of formatted message.
      */
     public static void i(@NonNull final Throwable throwable, @NonNull final String message, @NonNull final Object... args) {
-        GENERAL_LC_GROUP.i(message, throwable, args);
+        GENERAL_LC_GROUP.i(throwable, message, args);
     }
 
     /**
@@ -155,7 +155,7 @@ public final class Lc {
      * @param args      Arguments of formatted message.
      */
     public static void w(@NonNull final Throwable throwable, @NonNull final String message, @NonNull final Object... args) {
-        GENERAL_LC_GROUP.w(message, throwable, args);
+        GENERAL_LC_GROUP.w(throwable, message, args);
     }
 
     /**
@@ -176,7 +176,7 @@ public final class Lc {
      * @param args      Arguments of formatted message.
      */
     public static void e(@NonNull final Throwable throwable, @NonNull final String message, final Object... args) {
-        GENERAL_LC_GROUP.e(message, throwable, args);
+        GENERAL_LC_GROUP.e(throwable, message, args);
     }
 
     /**
