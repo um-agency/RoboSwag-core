@@ -66,6 +66,9 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
         super(moreMoreItemsLoader, initialItems);
         this.loadingNewerObservable = createLoadingNewerObservable(newerItemsLoader, false);
         this.loadingNewestObservable = createLoadingNewerObservable(newerItemsLoader, true);
+        if (initialItems != null) {
+            updateNewerReference(initialItems);
+        }
     }
 
     @NonNull

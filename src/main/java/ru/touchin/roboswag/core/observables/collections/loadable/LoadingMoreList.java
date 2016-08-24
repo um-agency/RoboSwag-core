@@ -88,7 +88,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
                 .refCount();
 
         if (initialItems != null) {
-            onItemsLoaded(initialItems, 0, false);
+            innerOnItemsLoaded(initialItems, 0, false);
         }
     }
 
@@ -155,7 +155,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         this.removeDuplicates = removeDuplicates;
     }
 
-    protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
+    private void innerOnItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
         final boolean lastPage = insertPosition > size() - 1;
         if (!reset) {
@@ -171,6 +171,10 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
             moreItemsReference = loadedItems.getReference();
             moreItemsCount.onNext(loadedItems.getMoreItemsCount());
         }
+    }
+
+    protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
+        innerOnItemsLoaded(loadedItems, insertPosition, reset);
     }
 
     private void removeDuplicatesFromList(@NonNull final List<TItem> items) {
