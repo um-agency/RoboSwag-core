@@ -23,6 +23,12 @@ import android.support.annotation.Nullable;
 
 import ru.touchin.roboswag.core.utils.ObjectUtils;
 
+/**
+ * Created by Gavriil Sitnikov on 02/06/2016.
+ * Request represents request to load next part of items.
+ *
+ * @param <TMoreReference> Type of reference to load next part of items.
+ */
 public class MoreLoadRequest<TMoreReference> {
 
     @Nullable
@@ -34,11 +40,21 @@ public class MoreLoadRequest<TMoreReference> {
         this.nextPosition = nextPosition;
     }
 
+    /**
+     * Returns reference to be used to load next part of items.
+     *
+     * @return Reference object.
+     */
     @Nullable
     public TMoreReference getReference() {
         return moreReference;
     }
 
+    /**
+     * Returns position of next item to load.
+     *
+     * @return Position of next item.
+     */
     public int getNextPosition() {
         return nextPosition;
     }

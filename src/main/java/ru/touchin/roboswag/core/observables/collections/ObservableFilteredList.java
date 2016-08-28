@@ -14,7 +14,10 @@ import rx.functions.Func1;
 
 /**
  * Created by Gavriil Sitnikov on 02/06/2016.
- * TODO: fill description
+ * {@link ObservableCollection} based on simple collection with filter inside.
+ * Changing filter or collection will provide changes from {@link #observeChanges()}.
+ *
+ * @param <TItem> Type of collection's items.
  */
 public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
 
@@ -44,7 +47,7 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
 
     public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection) {
         super();
-        this.sourceCollection = sourceCollection;
+        this.sourceCollection = new ArrayList<>(sourceCollection);
         this.filteredList = new ArrayList<>(sourceCollection);
     }
 
@@ -56,16 +59,26 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
     public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection,
                                   @NonNull final Func1<TItem, Boolean> filter) {
         super();
-        this.sourceCollection = sourceCollection;
+        this.sourceCollection = new ArrayList<>(sourceCollection);
         this.filter = filter;
         filteredList = filterCollection(this.sourceCollection, this.filter);
     }
 
+    /**
+     * Sets collection of items to filter.
+     *
+     * @param sourceCollection Collection with items.
+     */
     public void setSourceCollection(@Nullable final Collection<TItem> sourceCollection) {
-        this.sourceCollection = sourceCollection;
+        this.sourceCollection = sourceCollection != null ? new ArrayList<>(sourceCollection) : null;
         updateCollections();
     }
 
+    /**
+     * Sets filter that should return false as result of call to filter item.
+     *
+     * @param filter Function to filter item. True - item will stay, false - item will be filtered.
+     */
     public void setFilter(@Nullable final Func1<TItem, Boolean> filter) {
         this.filter = filter;
         updateCollections();

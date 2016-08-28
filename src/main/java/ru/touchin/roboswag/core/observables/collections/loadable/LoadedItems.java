@@ -26,17 +26,35 @@ import java.util.Collection;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
- * TODO: description
+ * Object represents loaded items with reference to load other parts and info of are there more items to load or not.
+ *
+ * @param <TItem>      Type of items to load;
+ * @param <TReference> Type of reference to load other parts of items.
  */
 public interface LoadedItems<TItem, TReference> {
 
     int UNKNOWN_ITEMS_COUNT = -1;
 
+    /**
+     * Returns count of items that could be loaded more.
+     *
+     * @return Count of items to load more or UNKNOWN_ITEMS_COUNT if it's unknown info.
+     */
     int getMoreItemsCount();
 
+    /**
+     * Returns loaded items.
+     *
+     * @return Loaded items.
+     */
     @NonNull
     Collection<TItem> getItems();
 
+    /**
+     * Returns reference that could be used to load other parts of items.
+     *
+     * @return Reference object.
+     */
     @Nullable
     TReference getReference();
 

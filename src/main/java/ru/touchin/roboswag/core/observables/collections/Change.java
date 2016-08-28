@@ -26,8 +26,24 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Created by Gavriil Sitnikov on 23/05/16.
+ * Class representing simple change of collection like insertion, remove or replacing/changing items.
+ *
+ * @param <TItem> Type of changing collection's items.
+ */
 public class Change<TItem> {
 
+    /**
+     * Method to calculate changes between two collections.
+     *
+     * @param initialCollection           Initial collection;
+     * @param modifiedCollection          Changed collection;
+     * @param shrinkChangesToModifiedSize Flag to make position of changed items be less then modified collection size.
+     *                                    It is needed sometimes to not get exceptions like {@link ArrayIndexOutOfBoundsException}.
+     * @param <TItem>                     Type of collections items.
+     * @return Changes between collections.
+     */
     @NonNull
     public static <TItem> Collection<Change<TItem>> calculateCollectionChanges(@NonNull final Collection<TItem> initialCollection,
                                                                                @NonNull final Collection<TItem> modifiedCollection,
@@ -49,20 +65,40 @@ public class Change<TItem> {
         this.count = changedItems.size();
     }
 
+    /**
+     * Returns type of change.
+     *
+     * @return Type of change.
+     */
     @NonNull
     public Type getType() {
         return type;
     }
 
+    /**
+     * Returns collection of items which this change applied to.
+     *
+     * @return Changed items.
+     */
     @NonNull
     public Collection<TItem> getChangedItems() {
         return changedItems;
     }
 
+    /**
+     * Returns first index of changed item.
+     *
+     * @return Start of change.
+     */
     public int getStart() {
         return start;
     }
 
+    /**
+     * Returns count of changed items.
+     *
+     * @return Count of changed items.
+     */
     public int getCount() {
         return count;
     }
@@ -72,6 +108,9 @@ public class Change<TItem> {
         return type + " change of " + start + ":" + count;
     }
 
+    /**
+     * Type of change.
+     */
     public enum Type {
         INSERTED,
         CHANGED,

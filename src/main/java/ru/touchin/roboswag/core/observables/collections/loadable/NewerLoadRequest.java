@@ -23,6 +23,12 @@ import android.support.annotation.Nullable;
 
 import ru.touchin.roboswag.core.utils.ObjectUtils;
 
+/**
+ * Created by Gavriil Sitnikov on 02/06/2016.
+ * Request represents request to load new part of items.
+ *
+ * @param <TNewerReference> Type of reference to load new part of items.
+ */
 public class NewerLoadRequest<TNewerReference> {
 
     @Nullable
@@ -34,11 +40,21 @@ public class NewerLoadRequest<TNewerReference> {
         this.newerItemsCount = newerItemsCount;
     }
 
+    /**
+     * Returns reference to be used to load new part of items.
+     *
+     * @return Reference object.
+     */
     @Nullable
     public TNewerReference getNewerReference() {
         return newerReference;
     }
 
+    /**
+     * Count of newer items to load.
+     *
+     * @return Count of newer items to load.
+     */
     public int getNewerItemsCount() {
         return newerItemsCount;
     }

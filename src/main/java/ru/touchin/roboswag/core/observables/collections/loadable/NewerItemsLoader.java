@@ -23,6 +23,14 @@ import android.support.annotation.NonNull;
 
 import rx.Observable;
 
+/**
+ * Created by Gavriil Sitnikov on 02/06/2016.
+ * Object that is loading new part of items by reference.
+ *
+ * @param <TItem>           Type of items to be loaded;
+ * @param <TNewerReference> Type of reference to be used to load new part of items;
+ * @param <TLoadedItems>    Type of loaded items part.
+ */
 public interface NewerItemsLoader<TItem, TReference, TNewerReference,
         TLoadedItems extends LoadedRenewableItems<TItem, TReference, TNewerReference>> {
 

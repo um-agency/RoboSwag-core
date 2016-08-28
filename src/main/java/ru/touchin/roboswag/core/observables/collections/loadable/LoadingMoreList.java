@@ -43,12 +43,21 @@ import rx.subjects.BehaviorSubject;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
- * TODO: description
+ * {@link ObservableCollection} which is loading items more and more by paging/limit-offset/reference-based mechanisms.
+ * To use this collection {@link MoreItemsLoader} should be created.
+ * {@link MoreItemsLoader} is an object to load next block of items by info from previous loaded block (last loaded item/reference etc.).
+ *
+ * @param <TItem>          Type of collection's items;
+ * @param <TMoreReference> Type of reference object to help rightly loading next block of items;
+ * @param <TLoadedItems>   Type of loading block of items.
  */
 public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedItems<TItem, TMoreReference>>
         extends ObservableCollection<TItem> {
 
     private static final int RETRY_LOADING_AFTER_CHANGE_COUNT = 5;
+
+    private static final LoadedItemsFilter<?> DUPLICATES_REMOVER = (collectionObject, loadedItemsObject) ->
+            collectionObject.equals(loadedItemsObject) ? FilterAction.REMOVE_FROM_LOADED_ITEMS : FilterAction.DO_NOTHING;
 
     @NonNull
     private final Scheduler loaderScheduler = RxAndroidUtils.createLooperScheduler();
@@ -58,7 +67,8 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
     private final BehaviorSubject<Integer> moreItemsCount = BehaviorSubject.create(LoadedItems.UNKNOWN_ITEMS_COUNT);
     @NonNull
     private final ObservableList<TItem> innerList = new ObservableList<>();
-    private boolean removeDuplicates;
+    @Nullable
+    private LoadedItemsFilter<TItem> loadedItemsFilter;
     @Nullable
     private TMoreReference moreItemsReference;
 
@@ -128,39 +138,75 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         Lc.assertion("Illegal operation. Modify getInnerList()");
     }
 
+    /**
+     * Returns {@link ObservableList} of already loaded items so you can modify it.
+     *
+     * @return {@link ObservableList} of already loaded items.
+     */
     @NonNull
     protected ObservableList<TItem> getInnerList() {
         return innerList;
     }
 
+    /**
+     * Returns if there are more items to load.
+     *
+     * @return True if there are more items to load.
+     */
     public boolean hasMoreItems() {
         return moreItemsCount.getValue() != 0;
     }
 
+    /**
+     * Returns {@link Observable} which is providing status of if is there are more items to load or not.
+     *
+     * @return {@link Observable} of more items availability status.
+     */
     @NonNull
     public Observable<Boolean> observeHasMoreItems() {
         return moreItemsCount.map(count -> count != 0).distinctUntilChanged();
     }
 
+    /**
+     * Returns {@link Observable} which is providing count of more items to load.
+     *
+     * @return {@link Observable} of more items availability status.
+     */
     @NonNull
     public Observable<Integer> observeMoreItemsCount() {
         return moreItemsCount.distinctUntilChanged();
     }
 
-    public boolean isRemoveDuplicates() {
-        return removeDuplicates;
+    /**
+     * Sets if duplicates (compared by {@link #equals(Object)}) should be removed from loaded part of items right after loading.
+     *
+     * @param removeDuplicates True if duplicates should be removed.
+     */
+    @SuppressWarnings("unchecked")
+    //unchecked: it's OK as we are using private static filter
+    public void setRemoveDuplicates(final boolean removeDuplicates) {
+        if (this.loadedItemsFilter != null && this.loadedItemsFilter != DUPLICATES_REMOVER) {
+            Lc.assertion("Remove old filter manually first");
+            return;
+        }
+        this.loadedItemsFilter = removeDuplicates ? (LoadedItemsFilter<TItem>) DUPLICATES_REMOVER : null;
     }
 
-    public void setRemoveDuplicates(final boolean removeDuplicates) {
-        this.removeDuplicates = removeDuplicates;
+    /**
+     * Sets specific filter object which will remove items from already loaded part or from new loaded items right after loading.
+     *
+     * @param loadedItemsFilter {@link LoadedItemsFilter} to make decision of removing items.
+     */
+    public void setLoadedItemsFilter(@Nullable final LoadedItemsFilter<TItem> loadedItemsFilter) {
+        this.loadedItemsFilter = loadedItemsFilter;
     }
 
     private void innerOnItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
         final boolean lastPage = insertPosition > size() - 1;
         if (!reset) {
-            if (removeDuplicates) {
-                removeDuplicatesFromList(items);
+            if (this.loadedItemsFilter != null) {
+                removeDuplicatesFromList(items, this.loadedItemsFilter);
             }
             innerList.addAll(insertPosition, items);
         } else {
@@ -173,16 +219,27 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         }
     }
 
+    /**
+     * Calls when any new items part loaded.
+     *
+     * @param loadedItems    Loaded items;
+     * @param insertPosition Position to insert loaded items;
+     * @param reset          Flag to reset previously loaded items or not.
+     */
     protected void onItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
         innerOnItemsLoaded(loadedItems, insertPosition, reset);
     }
 
-    private void removeDuplicatesFromList(@NonNull final List<TItem> items) {
+    private void removeDuplicatesFromList(@NonNull final List<TItem> items, @NonNull final LoadedItemsFilter<TItem> loadedItemsFilter) {
         for (int i = items.size() - 1; i >= 0; i--) {
-            for (int j = 0; j < innerList.size(); j++) {
-                if (innerList.get(j).equals(items.get(i))) {
+            for (int j = innerList.size() - 1; j >= 0; j--) {
+                final FilterAction filterAction = loadedItemsFilter.decideFilterAction(innerList.get(j), items.get(i));
+                if (filterAction == FilterAction.REMOVE_FROM_LOADED_ITEMS) {
                     items.remove(i);
                     break;
+                }
+                if (filterAction == FilterAction.REMOVE_FROM_COLLECTION) {
+                    innerList.remove(j);
                 }
             }
         }
@@ -205,6 +262,11 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         return innerList.getItems();
     }
 
+    /**
+     * Returns {@link Observable} that is loading new items.
+     *
+     * @return {@link Observable} that is loading new items.
+     */
     @NonNull
     protected Observable<TLoadedItems> getLoadingMoreObservable() {
         return loadingMoreObservable;
@@ -229,11 +291,19 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
                 .retry((number, throwable) -> throwable instanceof NotLoadedYetException);
     }
 
+    /**
+     * Remove all loaded items and resets collection's state.
+     */
     public void reset() {
         innerList.clear();
         resetState();
     }
 
+    /**
+     * Remove all loaded items and resets collection's state but sets some initial items.
+     *
+     * @param initialItems initial items to be set after reset.
+     */
     public void reset(@NonNull final TLoadedItems initialItems) {
         onItemsLoaded(initialItems, 0, true);
     }
@@ -243,9 +313,44 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         moreItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
     }
 
+    /**
+     * Action to do with some items while new part of items have loaded.
+     */
+    public enum FilterAction {
+        DO_NOTHING,
+        REMOVE_FROM_COLLECTION,
+        REMOVE_FROM_LOADED_ITEMS
+    }
+
+    /**
+     * Class that is representing object to decide what to do with some items from already loaded and newly loaded part.
+     * It should remove duplicates or items with changed data.
+     *
+     * @param <TItem> Type of collection's items.
+     */
+    public interface LoadedItemsFilter<TItem> {
+
+        /**
+         * Returns action to do based on items: do nothing, remove already loaded item or remove newly loaded item.
+         *
+         * @param collectionObject  Item from collection of already loaded items;
+         * @param loadedItemsObject Item from collection of newly loaded items part;
+         * @return Action to do with items.
+         */
+        @NonNull
+        FilterAction decideFilterAction(@NonNull final TItem collectionObject, @NonNull final TItem loadedItemsObject);
+
+    }
+
+    /**
+     * Helper exception happens if {@link #loadItem(int)} called with big index and latest loading items part still not reached such item.
+     */
     protected static class NotLoadedYetException extends Exception {
     }
 
+    /**
+     * Exception happens if loading request changed during loading so loaded items are not actual anymore.
+     */
     protected static class RequestChangedDuringLoadingException extends Exception {
     }
 

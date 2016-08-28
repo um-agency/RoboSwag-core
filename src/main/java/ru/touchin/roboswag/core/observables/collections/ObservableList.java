@@ -34,7 +34,11 @@ import rx.Observable;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
- * TODO: description
+ * {@link ObservableCollection} that is based on list.
+ * So it is providing similar List's methods like adding/removing/clearing etc.
+ * But! You can observe it's changes.
+ *
+ * @param <TItem> Type of collection's items.
  */
 public class ObservableList<TItem> extends ObservableCollection<TItem> implements Serializable {
 
@@ -53,10 +57,21 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         items = new ArrayList<>(initialItems);
     }
 
+    /**
+     * Adding item at the end of list.
+     *
+     * @param item Item to add.
+     */
     public void add(@NonNull final TItem item) {
         add(items.size(), item);
     }
 
+    /**
+     * Adding item at specific list position.
+     *
+     * @param position Position to add item to;
+     * @param item     Item to add.
+     */
     public void add(final int position, @NonNull final TItem item) {
         synchronized (this) {
             items.add(position, item);
@@ -64,10 +79,21 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         }
     }
 
+    /**
+     * Adding items at the end of list.
+     *
+     * @param itemsToAdd Items to add.
+     */
     public void addAll(@NonNull final Collection<TItem> itemsToAdd) {
         addAll(items.size(), itemsToAdd);
     }
 
+    /**
+     * Adding items at specific list position.
+     *
+     * @param position   Position to add items to;
+     * @param itemsToAdd Items to add.
+     */
     public void addAll(final int position, @NonNull final Collection<TItem> itemsToAdd) {
         synchronized (this) {
             if (!itemsToAdd.isEmpty()) {
@@ -77,10 +103,21 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         }
     }
 
+    /**
+     * Removing item by position.
+     *
+     * @param position Position to remove item from.
+     */
     public void remove(final int position) {
         remove(position, 1);
     }
 
+    /**
+     * Removing items by position.
+     *
+     * @param position Position to remove items from;
+     * @param count    Count of items to remove.
+     */
     public void remove(final int position, final int count) {
         if (count == 0) {
             return;
@@ -95,6 +132,9 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         }
     }
 
+    /**
+     * Removing all items from list.
+     */
     public void clear() {
         synchronized (this) {
             final Change<TItem> change = new Change<>(Change.Type.REMOVED, items, 0);
@@ -121,10 +161,22 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         }
     }
 
+    /**
+     * Replace item at specific position.
+     *
+     * @param position Position to replace item;
+     * @param item     Item to place.
+     */
     public void update(final int position, @NonNull final TItem item) {
         update(position, Collections.singleton(item));
     }
 
+    /**
+     * Replace items at specific position.
+     *
+     * @param position     Position to replace items;
+     * @param updatedItems Items to place.
+     */
     public void update(final int position, @NonNull final Collection<TItem> updatedItems) {
         if (updatedItems.isEmpty()) {
             return;
@@ -139,6 +191,11 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         }
     }
 
+    /**
+     * Resetting all items in list to new ones.
+     *
+     * @param newItems New items to set.
+     */
     public void set(@NonNull final Collection<TItem> newItems) {
         synchronized (this) {
             final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(items, newItems, false);
@@ -157,6 +214,12 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         }
     }
 
+    /**
+     * Returns position of item in list.
+     *
+     * @param item Item to find index of;
+     * @return Position of item in list or -1 if item not found.
+     */
     public int indexOf(@NonNull final TItem item) {
         synchronized (this) {
             return items.indexOf(item);

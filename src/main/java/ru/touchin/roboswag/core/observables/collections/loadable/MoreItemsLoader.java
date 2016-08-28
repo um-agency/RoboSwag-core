@@ -23,8 +23,22 @@ import android.support.annotation.NonNull;
 
 import rx.Observable;
 
+/**
+ * Created by Gavriil Sitnikov on 02/06/2016.
+ * Object that is loading next part of items by reference or position.
+ *
+ * @param <TItem>          Type of items to be loaded;
+ * @param <TMoreReference> Type of reference to be used to load next part of items;
+ * @param <TLoadedItems>   Type of loaded items part.
+ */
 public interface MoreItemsLoader<TItem, TMoreReference, TLoadedItems extends LoadedItems<TItem, TMoreReference>> {
 
+    /**
+     * Returns {@link Observable} that could load next part of items.
+     *
+     * @param moreLoadRequest Request with info inside to load next part of items;
+     * @return {@link Observable} of loading items.
+     */
     @NonNull
     Observable<TLoadedItems> load(@NonNull final MoreLoadRequest<TMoreReference> moreLoadRequest);
 

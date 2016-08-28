@@ -232,7 +232,7 @@ public class Storable<TKey, TObject, TStoreObject> {
 
     /**
      * Creates observable which is async setting value to store.
-     * It could emit only completed and errors events.
+     * NOTE: It could emit ONLY completed and errors events. It is not providing onNext event!
      * Errors won't be emitted if {@link #getStore()} implements {@link SafeStore} and {@link #getConverter()} implements {@link SafeConverter}.
      *
      * @param newValue Value to set;

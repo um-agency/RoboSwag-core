@@ -23,12 +23,26 @@ import android.support.annotation.Nullable;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
- * TODO: description
+ * Object represents loaded items with reference to load other parts and info of are there more items to load or not.
+ *
+ * @param <TItem>           Type of items to load;
+ * @param <TReference>      Type of reference to load other parts of items;
+ * @param <TNewerReference> Type of reference to load newer parts of items.
  */
 public interface LoadedRenewableItems<TItem, TReference, TNewerReference> extends LoadedItems<TItem, TReference> {
 
+    /**
+     * Returns count of new items other than loaded.
+     *
+     * @return Count of new items other than loaded.
+     */
     int getNewerItemsCount();
 
+    /**
+     * Returns reference to load newer items from this loaded part.
+     *
+     * @return Reference to load newer items.
+     */
     @Nullable
     TNewerReference getNewerReference();
 
