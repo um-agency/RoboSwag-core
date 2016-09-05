@@ -210,7 +210,9 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
     }
 
     private void updateNewerReference(@NonNull final TLoadedItems loadedItems) {
-        newerReference = loadedItems.getNewerReference();
+        if (loadedItems.getNewerReference() != null) {
+            newerReference = loadedItems.getNewerReference();
+        }
         newerItemsCount.onNext(loadedItems.getNewerItemsCount());
     }
 
