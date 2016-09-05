@@ -129,6 +129,16 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
         return filteredList != null ? Collections.unmodifiableCollection(filteredList) : Collections.emptyList();
     }
 
+    /**
+     * Returns source non-filtered collection of items.
+     *
+     * @return Non-filtered collection of items.
+     */
+    @NonNull
+    public Collection<TItem> getSourceItems() {
+        return sourceCollection != null ? Collections.unmodifiableCollection(sourceCollection) : Collections.emptyList();
+    }
+
     @NonNull
     @Override
     public Observable<TItem> loadItem(final int position) {
