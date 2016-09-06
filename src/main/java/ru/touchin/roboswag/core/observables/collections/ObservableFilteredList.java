@@ -84,7 +84,10 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
         updateCollections();
     }
 
-    private void updateCollections() {
+    /**
+     * Updates collection by current filter. Use it if some item's parameter which is important for filtering have changing.
+     */
+    public void updateCollections() {
         if (sourceCollection == null) {
             if (filteredList != null) {
                 final Change<TItem> change = new Change<>(Change.Type.REMOVED, filteredList, 0);
