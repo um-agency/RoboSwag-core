@@ -85,8 +85,12 @@ public class Changeable<T> implements Serializable {
 
     @Override
     public boolean equals(final Object object) {
-        if (this == object) return true;
-        if (object == null || getClass() != object.getClass()) return false;
+        if (this == object) {
+            return true;
+        }
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
 
         final Changeable<?> that = (Changeable<?>) object;
         return subject.getValue() != null ? subject.getValue().equals(that.subject.getValue()) : that.subject.getValue() == null;
