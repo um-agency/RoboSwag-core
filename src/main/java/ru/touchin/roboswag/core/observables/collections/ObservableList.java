@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import ru.touchin.roboswag.core.log.Lc;
 import rx.Observable;
 
 /**
@@ -100,6 +101,22 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
                 items.addAll(position, itemsToAdd);
                 notifyAboutChange(new Change<>(Change.Type.INSERTED, itemsToAdd, position));
             }
+        }
+    }
+
+    /**
+     * Removing item.
+     *
+     * @param item Item to remove.
+     */
+    public void remove(@NonNull final TItem item) {
+        synchronized (this) {
+            final int position = indexOf(item);
+            if (position < 0) {
+                Lc.assertion("Illegal removing of item " + item);
+                return;
+            }
+            remove(position);
         }
     }
 
