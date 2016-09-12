@@ -241,6 +241,11 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
                 if (filterAction == FilterAction.REMOVE_FROM_COLLECTION) {
                     innerList.remove(j);
                 }
+                if (filterAction == FilterAction.REPLACE_SOURCE_ITEM_WITH_LOADED) {
+                    innerList.update(j, items.get(i));
+                    items.remove(i);
+                    break;
+                }
             }
         }
     }
@@ -319,7 +324,8 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
     public enum FilterAction {
         DO_NOTHING,
         REMOVE_FROM_COLLECTION,
-        REMOVE_FROM_LOADED_ITEMS
+        REMOVE_FROM_LOADED_ITEMS,
+        REPLACE_SOURCE_ITEM_WITH_LOADED,
     }
 
     /**
