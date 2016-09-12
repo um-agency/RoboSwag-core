@@ -238,7 +238,19 @@ public final class Lc {
      */
     @NonNull
     public static String getCodePoint(@Nullable final Object caller) {
-        final StackTraceElement traceElement = Thread.currentThread().getStackTrace()[STACK_TRACE_CODE_DEPTH];
+        return getCodePoint(caller, 1);
+    }
+
+    /**
+     * Returns line of code from where this method called.
+     *
+     * @param caller     Object who is calling for code point;
+     * @param stackShift caller Shift of stack (e.g. 2 means two elements deeper);
+     * @return String represents code point.
+     */
+    @NonNull
+    public static String getCodePoint(@Nullable final Object caller, final int stackShift) {
+        final StackTraceElement traceElement = Thread.currentThread().getStackTrace()[STACK_TRACE_CODE_DEPTH + stackShift];
         return (caller != null ? caller.getClass().getName() + '(' + caller.hashCode() + ") at " : "")
                 + traceElement.getFileName() + ':' + traceElement.getMethodName() + ':' + traceElement.getLineNumber();
     }
