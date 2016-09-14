@@ -203,7 +203,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
 
     private void innerOnItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
-        final boolean lastPage = insertPosition > size() - 1;
+        final boolean lastPage = reset || insertPosition > size() - 1;
         if (!reset) {
             if (this.loadedItemsFilter != null) {
                 removeDuplicatesFromList(items, this.loadedItemsFilter);
