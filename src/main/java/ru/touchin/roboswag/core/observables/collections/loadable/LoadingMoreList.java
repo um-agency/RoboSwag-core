@@ -102,10 +102,12 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         }
     }
 
+    @NonNull
     private MoreLoadRequest<TMoreReference> createActualRequest() {
         return new MoreLoadRequest<>(moreItemsReference, Math.max(0, size()));
     }
 
+    @NonNull
     protected <T, TRequest> Observable<T> createLoadRequestBasedObservable(@NonNull final Func0<TRequest> requestCreator,
                                                                            @NonNull final Func1<TRequest, Observable<T>> observableCreator) {
         return Observable
@@ -117,9 +119,9 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
                             if (!requestCreator.call().equals(loadRequest)) {
                                 throw OnErrorThrowable.from(new RequestChangedDuringLoadingException());
                             }
-                        })
-                        .retry((number, throwable) -> number <= RETRY_LOADING_AFTER_CHANGE_COUNT
-                                && throwable instanceof RequestChangedDuringLoadingException));
+                        }))
+                .retry((number, throwable) ->
+                        number <= RETRY_LOADING_AFTER_CHANGE_COUNT && throwable instanceof RequestChangedDuringLoadingException);
     }
 
     @NonNull
