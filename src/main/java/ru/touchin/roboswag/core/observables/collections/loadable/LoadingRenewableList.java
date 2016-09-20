@@ -109,10 +109,7 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
                                 + " NewerItemsLoader should emit only one result.", throwable));
                     }
                 })
-                .doOnNext(loadedItems -> {
-                    onItemsLoaded(loadedItems, 0, renew);
-                    onNewerItemsLoaded(loadedItems, renew);
-                })
+                .doOnNext(loadedItems -> onNewerItemsLoaded(loadedItems, renew))
                 .replay(1)
                 .refCount();
     }
@@ -161,6 +158,7 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
      * @param renew       Flag indicates is it loading just to load some new items or to load specific part of new items.
      */
     protected void onNewerItemsLoaded(@NonNull final TLoadedItems loadedItems, final boolean renew) {
+        onItemsLoaded(loadedItems, 0, renew);
         updateNewerReference(loadedItems);
     }
 
