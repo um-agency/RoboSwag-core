@@ -155,7 +155,7 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
      * Calls when newer items part loaded.
      *
      * @param loadedItems Loaded items;
-     * @param renew       Flag indicates is it loading just to load some new items or to load specific part of new items.
+     * @param renew       Flag indicates is it loading just to load some new items (false) or to load totally new items (true).
      */
     protected void onNewerItemsLoaded(@NonNull final TLoadedItems loadedItems, final boolean renew) {
         onItemsLoaded(loadedItems, 0, renew);
