@@ -80,6 +80,7 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
         return getLoadingMoreObservable().ignoreElements().concatWith(observable);
     }
 
+    @NonNull
     private NewerLoadRequest<TNewerReference> createActualRequest() {
         return new NewerLoadRequest<>(newerReference, newerItemsCount.getValue());
     }
@@ -91,10 +92,13 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
         return Observable
                 .switchOnNext(Observable.<Observable<TLoadedItems>>create(subscriber -> {
                     if (!renew) {
-                        subscriber.onNext(createLoadRequestBasedObservable(this::createActualRequest,
-                                loadRequest -> loadRequest.getNewerReference() == null && isEmpty()
-                                        ? waitForInitialLoading(newerItemsLoader.load(loadRequest))
-                                        : newerItemsLoader.load(loadRequest)));
+                        subscriber.onNext(Observable.concat(
+                                //we need non-empty list to star loading newer items or we need to wait any change (should be insertion)
+                                isEmpty() ? observeChanges().first().switchMap(ignored -> Observable.empty()) : Observable.empty(),
+                                createLoadRequestBasedObservable(this::createActualRequest,
+                                        loadRequest -> loadRequest.getNewerReference() == null && isEmpty()
+                                                ? waitForInitialLoading(newerItemsLoader.load(loadRequest))
+                                                : newerItemsLoader.load(loadRequest))));
                     } else {
                         subscriber.onNext(newerItemsLoader.load(new NewerLoadRequest<>(null, LoadedItems.UNKNOWN_ITEMS_COUNT))
                                 .subscribeOn(Schedulers.io())
