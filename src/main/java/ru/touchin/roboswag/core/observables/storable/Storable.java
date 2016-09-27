@@ -140,6 +140,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                             migration.migrateToLatestVersion(key);
                         }
                         subscriber.onNext(store.loadObject(storeObjectClass, key));
+                        subscriber.onCompleted();
                     } catch (final Store.StoreException storeException) {
                         if (store instanceof SafeStore) {
                             Lc.assertion(storeException);
@@ -151,7 +152,6 @@ public class Storable<TKey, TObject, TStoreObject> {
                         STORABLE_LC_GROUP.assertion(migrationException);
                         subscriber.onError(migrationException);
                     }
-                    subscriber.onCompleted();
                 })
                 .subscribeOn(storeScheduler != null ? storeScheduler : RxAndroidUtils.createLooperScheduler())
                 .concatWith(newStoreValueEvent)
@@ -251,6 +251,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                                 store.storeObject(storeObjectClass, key, storeObject);
                                 newStoreValueEvent.onNext(storeObject);
                                 STORABLE_LC_GROUP.i("Value of '%s' changed from '%s' to '%s'", key, value, newValue);
+                                subscriber.onCompleted();
                             } catch (final Converter.ConversionException conversionException) {
                                 if (converter instanceof SafeConverter) {
                                     STORABLE_LC_GROUP.assertion(conversionException);
@@ -267,7 +268,6 @@ public class Storable<TKey, TObject, TStoreObject> {
                                 }
                                 subscriber.onError(storeException);
                             }
-                            subscriber.onCompleted();
                         }));
     }
 
