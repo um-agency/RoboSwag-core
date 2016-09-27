@@ -211,7 +211,7 @@ public class LcGroup {
      * @param message Message that is describing assertion.
      */
     public void assertion(@NonNull final String message) {
-        logMessage(LcLevel.ASSERT, message, null);
+        logMessage(LcLevel.ASSERT, "Assertion appears at %s with message: \n" + message, null, Lc.getCodePoint(null, 1));
     }
 
     /**
@@ -223,7 +223,7 @@ public class LcGroup {
      * @param throwable Exception that is describing assertion.
      */
     public void assertion(@NonNull final Throwable throwable) {
-        logMessage(LcLevel.ASSERT, null, throwable);
+        logMessage(LcLevel.ASSERT, "Assertion appears at (%s)", throwable, Lc.getCodePoint(null, 1));
     }
 
 }
