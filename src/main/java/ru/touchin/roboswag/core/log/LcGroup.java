@@ -112,9 +112,8 @@ public class LcGroup {
     @NonNull
     private ShouldNotHappenException createAssertion(@Nullable final String message, @Nullable final Throwable exception) {
         return exception != null
-                ? (exception instanceof ShouldNotHappenException
-                ? (ShouldNotHappenException) exception
-                : (message != null ? new ShouldNotHappenException(message, exception) : new ShouldNotHappenException(exception)))
+                ? (message != null ? new ShouldNotHappenException(message, exception)
+                : (exception instanceof ShouldNotHappenException ? (ShouldNotHappenException) exception : new ShouldNotHappenException(exception)))
                 : (message != null ? new ShouldNotHappenException(message) : new ShouldNotHappenException());
     }
 
@@ -211,7 +210,7 @@ public class LcGroup {
      * @param message Message that is describing assertion.
      */
     public void assertion(@NonNull final String message) {
-        logMessage(LcLevel.ASSERT, "Assertion appears at %s with message: \n" + message, null, Lc.getCodePoint(null, 1));
+        logMessage(LcLevel.ASSERT, "Assertion appears at %s with message: " + message, null, Lc.getCodePoint(null, 2));
     }
 
     /**
@@ -223,7 +222,7 @@ public class LcGroup {
      * @param throwable Exception that is describing assertion.
      */
     public void assertion(@NonNull final Throwable throwable) {
-        logMessage(LcLevel.ASSERT, "Assertion appears at (%s)", throwable, Lc.getCodePoint(null, 1));
+        logMessage(LcLevel.ASSERT, "Assertion appears at %s", throwable, Lc.getCodePoint(null, 2));
     }
 
 }
