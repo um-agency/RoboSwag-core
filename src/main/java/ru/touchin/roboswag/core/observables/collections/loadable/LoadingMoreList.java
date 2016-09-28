@@ -206,15 +206,14 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
     private void innerOnItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
         final boolean lastPage = reset || insertPosition > size() - 1;
-        if (!reset) {
-            if (this.loadedItemsFilter != null) {
-                removeDuplicatesFromList(items, this.loadedItemsFilter);
-            }
-            innerList.addAll(insertPosition, items);
-        } else {
+        if (reset) {
             resetState();
-            innerList.set(items);
+            innerList.clear();
         }
+        if (this.loadedItemsFilter != null) {
+            filterList(items, this.loadedItemsFilter);
+        }
+        innerList.addAll(insertPosition, items);
         if (lastPage) {
             moreItemsReference = loadedItems.getReference();
             moreItemsCount.onNext(loadedItems.getMoreItemsCount());
@@ -232,7 +231,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         innerOnItemsLoaded(loadedItems, insertPosition, reset);
     }
 
-    private void removeDuplicatesFromList(@NonNull final List<TItem> items, @NonNull final LoadedItemsFilter<TItem> loadedItemsFilter) {
+    private void filterList(@NonNull final List<TItem> items, @NonNull final LoadedItemsFilter<TItem> loadedItemsFilter) {
         for (int i = items.size() - 1; i >= 0; i--) {
             for (int j = innerList.size() - 1; j >= 0; j--) {
                 final FilterAction filterAction = loadedItemsFilter.decideFilterAction(innerList.get(j), items.get(i));
