@@ -210,7 +210,7 @@ public class LcGroup {
      * @param message Message that is describing assertion.
      */
     public void assertion(@NonNull final String message) {
-        logMessage(LcLevel.ASSERT, "Assertion appears at %s with message: " + message, null, Lc.getCodePoint(null, 2));
+        logMessage(LcLevel.ASSERT, "Assertion appears at %s with message: %s", null, Lc.getCodePoint(null, 2), message);
     }
 
     /**
