@@ -49,7 +49,7 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
     @Nullable
     private TNewerReference newerReference;
     @NonNull
-    protected final BehaviorSubject<Integer> newerItemsCount = BehaviorSubject.create(LoadedItems.UNKNOWN_ITEMS_COUNT);
+    private final BehaviorSubject<Integer> newerItemsCount = BehaviorSubject.create(LoadedItems.UNKNOWN_ITEMS_COUNT);
 
     @NonNull
     private final Observable<TLoadedItems> loadingNewerObservable;
@@ -124,6 +124,15 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
      */
     public boolean hasNewerItems() {
         return newerItemsCount.getValue() != 0;
+    }
+
+    /**
+     * Update a new items count.
+     *
+     * @param count new items count
+     */
+    public void updateNewerItemsCount(final int count) {
+        newerItemsCount.onNext(count);
     }
 
     /**
