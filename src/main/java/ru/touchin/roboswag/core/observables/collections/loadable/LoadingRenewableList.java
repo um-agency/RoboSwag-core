@@ -127,6 +127,15 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
     }
 
     /**
+     * Update a new items count.
+     *
+     * @param count new items count
+     */
+    public void updateNewerItemsCount(final int count) {
+        newerItemsCount.onNext(count);
+    }
+
+    /**
      * Returns {@link Observable} which is providing status of if is there are new items to load or not.
      *
      * @return {@link Observable} of more items availability status.
