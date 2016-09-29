@@ -49,7 +49,7 @@ public class LoadingRenewableList<TItem, TReference, TNewerReference,
     @Nullable
     private TNewerReference newerReference;
     @NonNull
-    private final BehaviorSubject<Integer> newerItemsCount = BehaviorSubject.create(LoadedItems.UNKNOWN_ITEMS_COUNT);
+    protected final BehaviorSubject<Integer> newerItemsCount = BehaviorSubject.create(LoadedItems.UNKNOWN_ITEMS_COUNT);
 
     @NonNull
     private final Observable<TLoadedItems> loadingNewerObservable;
