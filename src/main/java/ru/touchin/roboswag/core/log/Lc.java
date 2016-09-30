@@ -225,7 +225,8 @@ public final class Lc {
                         break;
                     }
                 }
-            } while (exceptionAssignableFromIgnores && result != null && !processedExceptions.contains(result));
+            }
+            while (exceptionAssignableFromIgnores && result != null && !processedExceptions.contains(result));
             Lc.assertion(result != null ? result : assertion);
         });
     }

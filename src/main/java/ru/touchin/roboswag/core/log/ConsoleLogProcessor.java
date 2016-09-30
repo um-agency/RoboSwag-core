@@ -52,7 +52,8 @@ public class ConsoleLogProcessor extends LogProcessor {
                 //noinspection WrongConstant
                 Log.println(level.getPriority(), tag, messageToLog.substring(i, end));
                 i = end;
-            } while (i < newline);
+            }
+            while (i < newline);
         }
 
     }
