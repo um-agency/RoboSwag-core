@@ -69,6 +69,9 @@ public final class RxAndroidUtils {
 
     /**
      * Creating {@link Scheduler} that is scheduling work on specific thread with {@link Looper}.
+     * Do not use it much times - it is creating endless thread every call.
+     * It's good to use it only like a constant like:
+     * private static final Scheduler SCHEDULER = RxAndroidUtils.createLooperScheduler();
      *
      * @return Looper thread based {@link Scheduler}.
      */
@@ -79,8 +82,8 @@ public final class RxAndroidUtils {
         try {
             thread.isLooperInitialized.await();
             return AndroidSchedulers.from(thread.looper);
-        } catch (final InterruptedException e) {
-            Lc.w(e, "Interruption during looper creation");
+        } catch (final InterruptedException exception) {
+            Lc.w(exception, "Interruption during looper creation");
             return AndroidSchedulers.mainThread();
         }
     }

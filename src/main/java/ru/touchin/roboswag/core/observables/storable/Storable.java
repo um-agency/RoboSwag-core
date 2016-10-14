@@ -25,7 +25,6 @@ import android.support.annotation.Nullable;
 import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.log.LcGroup;
 import ru.touchin.roboswag.core.observables.ObservableResult;
-import ru.touchin.roboswag.core.observables.RxAndroidUtils;
 import ru.touchin.roboswag.core.observables.RxUtils;
 import ru.touchin.roboswag.core.observables.storable.builders.MigratableStorableBuilder;
 import ru.touchin.roboswag.core.observables.storable.builders.NonNullStorableBuilder;
@@ -36,6 +35,7 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.exceptions.OnErrorThrowable;
 import rx.functions.Actions;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 /**
@@ -153,7 +153,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                         subscriber.onError(migrationException);
                     }
                 })
-                .subscribeOn(storeScheduler != null ? storeScheduler : RxAndroidUtils.createLooperScheduler())
+                .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.io())
                 .concatWith(newStoreValueEvent)
                 .map(storeObject -> returnDefaultValueIfNull(storeObject, defaultValue));
         return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE ? result : result.replay(1).refCount();

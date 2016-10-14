@@ -26,9 +26,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.Executors;
 
 import ru.touchin.roboswag.core.log.Lc;
-import ru.touchin.roboswag.core.observables.RxAndroidUtils;
 import ru.touchin.roboswag.core.observables.collections.Change;
 import ru.touchin.roboswag.core.observables.collections.ObservableCollection;
 import ru.touchin.roboswag.core.observables.collections.ObservableList;
@@ -60,7 +60,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
             collectionObject.equals(loadedItemsObject) ? FilterAction.REMOVE_FROM_LOADED_ITEMS : FilterAction.DO_NOTHING;
 
     @NonNull
-    private final Scheduler loaderScheduler = RxAndroidUtils.createLooperScheduler();
+    private final Scheduler loaderScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
     @NonNull
     private Observable<TLoadedItems> loadingMoreObservable;
     @NonNull
@@ -208,12 +208,16 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         final boolean lastPage = reset || insertPosition > size() - 1;
         if (reset) {
             resetState();
-            innerList.clear();
+            if (insertPosition != 0) {
+                Lc.assertion("Wrong insert position " + insertPosition);
+            }
+            innerList.set(items);
+        } else {
+            if (this.loadedItemsFilter != null) {
+                filterList(items, this.loadedItemsFilter);
+            }
+            innerList.addAll(insertPosition, items);
         }
-        if (this.loadedItemsFilter != null) {
-            filterList(items, this.loadedItemsFilter);
-        }
-        innerList.addAll(insertPosition, items);
         if (lastPage) {
             moreItemsReference = loadedItems.getReference();
             moreItemsCount.onNext(loadedItems.getMoreItemsCount());
