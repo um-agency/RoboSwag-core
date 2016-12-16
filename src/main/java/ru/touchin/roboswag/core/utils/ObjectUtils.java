@@ -23,6 +23,8 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.
@@ -57,6 +59,34 @@ public final class ObjectUtils {
             return object1.equals(object2);
         }
         return isArraysEquals(object1, object2, elementType1);
+    }
+
+    /**
+     * Compares two collections if their elements are equals or not.
+     *
+     * @param collection1 First object to compare;
+     * @param collection2 Second object to compare;
+     * @return True if collections are equals.
+     */
+    @SuppressWarnings("PMD.CompareObjectsWithEquals")
+    //CompareObjectsWithEquals: we need to compare if it's same object
+    public static boolean isCollectionsEquals(@Nullable final Collection<?> collection1, @Nullable final Collection<?> collection2) {
+        if (collection1 == collection2) {
+            return true;
+        }
+        if (collection1 == null || collection2 == null) {
+            return false;
+        }
+        if (collection1.size() != collection2.size()) {
+            return false;
+        }
+        final Iterator<?> collection2Iterator = collection2.iterator();
+        for (final Object item1 : collection1) {
+            if (!equals(item1, collection2Iterator.next())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @SuppressWarnings("PMD.AvoidUsingShortType")
