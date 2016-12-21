@@ -22,7 +22,6 @@ package ru.touchin.roboswag.core.observables.storable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.log.LcGroup;
 import ru.touchin.roboswag.core.observables.ObservableResult;
 import ru.touchin.roboswag.core.observables.RxUtils;
@@ -116,13 +115,11 @@ public class Storable<TKey, TObject, TStoreObject> {
             try {
                 return converter.toStoreObject(objectClass, storeObjectClass, defaultValue);
             } catch (final Converter.ConversionException exception) {
-                if (converter instanceof SafeConverter) {
-                    STORABLE_LC_GROUP.assertion(exception);
-                } else {
-                    STORABLE_LC_GROUP.w(exception, "Exception while converting default value of '%s' from '%s' from store %s",
-                            key, defaultValue, store);
-                }
+                STORABLE_LC_GROUP.w(exception, "Exception while converting default value of '%s' from '%s' from store %s",
+                        key, defaultValue, store);
                 throw OnErrorThrowable.from(exception);
+            } catch (final RuntimeException throwable) {
+                STORABLE_LC_GROUP.assertion(throwable);
             }
         }
         return storeObject;
@@ -142,15 +139,13 @@ public class Storable<TKey, TObject, TStoreObject> {
                         subscriber.onNext(store.loadObject(storeObjectClass, key));
                         subscriber.onCompleted();
                     } catch (final Store.StoreException storeException) {
-                        if (store instanceof SafeStore) {
-                            Lc.assertion(storeException);
-                        } else {
-                            STORABLE_LC_GROUP.w(storeException, "Exception while trying to get value of '%s' from store %s", key, store);
-                        }
+                        STORABLE_LC_GROUP.w(storeException, "Exception while trying to get value of '%s' from store %s", key, store);
                         subscriber.onError(storeException);
                     } catch (final Migration.MigrationException migrationException) {
                         STORABLE_LC_GROUP.assertion(migrationException);
                         subscriber.onError(migrationException);
+                    } catch (final RuntimeException throwable) {
+                        STORABLE_LC_GROUP.assertion(throwable);
                     }
                 })
                 .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.io())
@@ -167,13 +162,12 @@ public class Storable<TKey, TObject, TStoreObject> {
                     try {
                         return converter.toObject(objectClass, storeObjectClass, storeObject);
                     } catch (final Converter.ConversionException exception) {
-                        if (converter instanceof SafeConverter) {
-                            STORABLE_LC_GROUP.assertion(exception);
-                        } else {
-                            STORABLE_LC_GROUP.w(exception, "Exception while converting value of '%s' from '%s' from store %s",
-                                    key, storeObject, store);
-                        }
+                        STORABLE_LC_GROUP.w(exception, "Exception while converting value of '%s' from '%s' from store %s",
+                                key, storeObject, store);
                         throw OnErrorThrowable.from(exception);
+                    } catch (final RuntimeException throwable) {
+                        STORABLE_LC_GROUP.assertion(throwable);
+                        throw OnErrorThrowable.from(throwable);
                     }
                 });
 
@@ -253,20 +247,14 @@ public class Storable<TKey, TObject, TStoreObject> {
                                 STORABLE_LC_GROUP.i("Value of '%s' changed from '%s' to '%s'", key, value, newValue);
                                 subscriber.onCompleted();
                             } catch (final Converter.ConversionException conversionException) {
-                                if (converter instanceof SafeConverter) {
-                                    STORABLE_LC_GROUP.assertion(conversionException);
-                                } else {
-                                    STORABLE_LC_GROUP.w(conversionException, "Exception while converting value of '%s' from '%s' to store object",
-                                            key, newValue, store);
-                                }
+                                STORABLE_LC_GROUP.w(conversionException, "Exception while converting value of '%s' from '%s' to store object",
+                                        key, newValue, store);
                                 subscriber.onError(conversionException);
                             } catch (final Store.StoreException storeException) {
-                                if (store instanceof SafeStore) {
-                                    Lc.assertion(storeException);
-                                } else {
-                                    STORABLE_LC_GROUP.w(storeException, "Exception while trying to store value of '%s' to store %s", key, store);
-                                }
+                                STORABLE_LC_GROUP.w(storeException, "Exception while trying to store value of '%s' to store %s", key, store);
                                 subscriber.onError(storeException);
+                            } catch (final RuntimeException throwable) {
+                                STORABLE_LC_GROUP.assertion(throwable);
                             }
                         }));
     }
