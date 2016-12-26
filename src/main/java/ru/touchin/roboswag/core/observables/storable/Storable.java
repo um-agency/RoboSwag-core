@@ -95,7 +95,7 @@ public class Storable<TKey, TObject, TStoreObject> {
         final ObserveStrategy nonNullObserveStrategy = observeStrategy != null ? observeStrategy : getDefaultGetStrategy();
         final Observable<TStoreObject> storeValueObservable
                 = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue, storeScheduler);
-        valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy);
+        valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy, storeScheduler);
     }
 
     @NonNull
@@ -156,7 +156,8 @@ public class Storable<TKey, TObject, TStoreObject> {
 
     @NonNull
     private Observable<TObject> createValueObservable(@NonNull final Observable<TStoreObject> storeValueObservable,
-                                                      @NonNull final ObserveStrategy observeStrategy) {
+                                                      @NonNull final ObserveStrategy observeStrategy,
+                                                      @Nullable final Scheduler storeScheduler) {
         final Observable<TObject> result = storeValueObservable
                 .map(storeObject -> {
                     try {
@@ -169,7 +170,8 @@ public class Storable<TKey, TObject, TStoreObject> {
                         STORABLE_LC_GROUP.assertion(throwable);
                         throw OnErrorThrowable.from(throwable);
                     }
-                });
+                })
+                .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.computation());
 
         return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE ? result : result.replay(1).refCount();
     }
