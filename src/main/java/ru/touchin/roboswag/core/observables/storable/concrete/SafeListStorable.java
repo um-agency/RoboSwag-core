@@ -56,6 +56,14 @@ public class SafeListStorable<TKey, TItemObject, TStoreObject> {
     }
 
     /**
+     * Wraps {@link Storable#observe()}.
+     */
+    @NonNull
+    public Observable<List<TItemObject>> observe() {
+        return storable.observe().map(list -> (List<TItemObject>) list);
+    }
+
+    /**
      * Wraps {@link Storable#set(Object)}.
      */
     @NonNull
