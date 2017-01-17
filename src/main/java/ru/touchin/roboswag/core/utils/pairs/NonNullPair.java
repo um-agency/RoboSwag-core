@@ -25,7 +25,6 @@ import java.io.Serializable;
 
 /**
  * Created by Ilia Kurtov on 17/01/2017.
- *
  * Pair that needed for saving in state because it implements Serializable interface.
  * Both arguments are not null.
  * Note that if you want to save this pair in state, you need make TFirst and TSecond Serializable too.
