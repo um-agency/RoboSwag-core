@@ -19,7 +19,7 @@
 
 package ru.touchin.roboswag.core.utils.pairs;
 
-import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.Serializable;
 
@@ -28,20 +28,20 @@ import java.io.Serializable;
  * Pair that needed for saving in state because it implements Serializable interface.
  * Both arguments are nullable.
  * Note that if you want to save this pair in state, you need make TFirst and TSecond Serializable too.
- * 
- * @param <TFirst> type of the first nullable argument.
+ *
+ * @param <TFirst>  type of the first nullable argument.
  * @param <TSecond> type of the second nullable argument.
  */
 public class NullablePair<TFirst, TSecond> implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @NonNull
+    @Nullable
     private final TFirst first;
-    @NonNull
+    @Nullable
     private final TSecond second;
 
-    public NullablePair(@NonNull final TFirst first, @NonNull final TSecond second) {
+    public NullablePair(@Nullable final TFirst first, @Nullable final TSecond second) {
         this.first = first;
         this.second = second;
     }
@@ -49,7 +49,7 @@ public class NullablePair<TFirst, TSecond> implements Serializable {
     /**
      * Get first argument of this pair. It may be nullable.
      */
-    @NonNull
+    @Nullable
     public TFirst getFirst() {
         return first;
     }
@@ -57,7 +57,7 @@ public class NullablePair<TFirst, TSecond> implements Serializable {
     /**
      * Get second argument of this pair. It may be nullable.
      */
-    @NonNull
+    @Nullable
     public TSecond getSecond() {
         return second;
     }
