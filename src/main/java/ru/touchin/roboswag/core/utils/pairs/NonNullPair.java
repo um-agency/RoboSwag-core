@@ -23,6 +23,8 @@ import android.support.annotation.NonNull;
 
 import java.io.Serializable;
 
+import ru.touchin.roboswag.core.utils.ObjectUtils;
+
 /**
  * Created by Ilia Kurtov on 17/01/2017.
  * Pair that needed for saving in state because it implements Serializable interface.
@@ -60,6 +62,27 @@ public class NonNullPair<TFirst, TSecond> implements Serializable {
     @NonNull
     public TSecond getSecond() {
         return second;
+    }
+
+    @Override
+    public boolean equals(final Object object) {
+        if (this == object) {
+            return true;
+        }
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
+
+        final NonNullPair<?, ?> that = (NonNullPair<?, ?>) object;
+
+        return ObjectUtils.equals(first, that.getFirst()) && ObjectUtils.equals(second, that.getSecond());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = first.hashCode();
+        result = 31 * result + second.hashCode();
+        return result;
     }
 
 }
