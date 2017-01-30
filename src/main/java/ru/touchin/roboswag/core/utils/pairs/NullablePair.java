@@ -23,6 +23,8 @@ import android.support.annotation.Nullable;
 
 import java.io.Serializable;
 
+import ru.touchin.roboswag.core.utils.ObjectUtils;
+
 /**
  * Created by Ilia Kurtov on 17/01/2017.
  * Pair that needed for saving in state because it implements Serializable interface.
@@ -32,7 +34,7 @@ import java.io.Serializable;
  * @param <TFirst>  type of the first nullable argument.
  * @param <TSecond> type of the second nullable argument.
  */
-public class NullablePair<TFirst, TSecond> implements Serializable {
+public class NullablePair<TFirst, TSecond> implements Serializable { //todo: mb make it parent for NonNull nad HalfNull?
 
     private static final long serialVersionUID = 1L;
 
@@ -44,6 +46,11 @@ public class NullablePair<TFirst, TSecond> implements Serializable {
     public NullablePair(@Nullable final TFirst first, @Nullable final TSecond second) {
         this.first = first;
         this.second = second;
+    }
+
+    public NullablePair() {
+        this.first = null;
+        this.second = null;
     }
 
     /**
@@ -60,6 +67,27 @@ public class NullablePair<TFirst, TSecond> implements Serializable {
     @Nullable
     public TSecond getSecond() {
         return second;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+
+        final NullablePair<?, ?> that = (NullablePair<?, ?>) obj;
+
+        return ObjectUtils.equals(first, that.getFirst()) && ObjectUtils.equals(second, that.getSecond());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = first.hashCode();
+        result = 31 * result + second.hashCode();
+        return result;
     }
 
 }

@@ -24,13 +24,15 @@ import android.support.annotation.Nullable;
 
 import java.io.Serializable;
 
+import ru.touchin.roboswag.core.utils.ObjectUtils;
+
 /**
  * Created by Ilia Kurtov on 17/01/2017.
  * Pair that needed for saving in state because it implements Serializable interface.
  * First argument must be not null and second one - nullable.
  * Note that if you want to save this pair in state, you need make TFirst and TSecond Serializable too.
  *
- * @param <TFirst> type of the first nonnull argument.
+ * @param <TFirst>  type of the first nonnull argument.
  * @param <TSecond> type of the second nullable argument.
  */
 public class HalfNullablePair<TFirst, TSecond> implements Serializable {
@@ -61,6 +63,27 @@ public class HalfNullablePair<TFirst, TSecond> implements Serializable {
     @Nullable
     public TSecond getSecond() {
         return second;
+    }
+
+    @Override
+    public boolean equals(final Object object) {
+        if (this == object) {
+            return true;
+        }
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
+
+        final HalfNullablePair<?, ?> that = (HalfNullablePair<?, ?>) object;
+
+        return ObjectUtils.equals(second, that.getSecond()) && ObjectUtils.equals(first, that.getFirst());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = first.hashCode();
+        result = 31 * result + (second != null ? second.hashCode() : 0);
+        return result;
     }
 
 }
