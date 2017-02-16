@@ -102,7 +102,8 @@ public final class ObjectUtils {
     public static boolean isMapsEquals(@Nullable final Map<?, ?> map1, @Nullable final Map<?, ?> map2) {
         return map1 == map2 || !(map1 == null || map2 == null)
                 && map1.size() == map2.size()
-                && map1.entrySet().containsAll(map2.entrySet());
+                && map1.entrySet().containsAll(map2.entrySet())
+                && map2.entrySet().containsAll(map1.entrySet());
     }
 
     @SuppressWarnings("PMD.AvoidUsingShortType")
