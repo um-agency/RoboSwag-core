@@ -79,7 +79,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
     @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
     //ConstructorCallsOverridableMethod: actually it is calling in lambda callback
     public LoadingMoreList(@NonNull final MoreItemsLoader<TItem, TMoreReference, TLoadedItems> moreMoreItemsLoader,
-                           @Nullable final TLoadedItems initialItems) {
+                           @Nullable final LoadedItems<TItem, TMoreReference> initialItems) {
         super();
         this.loadingMoreObservable = Observable
                 .switchOnNext(Observable.<Observable<TLoadedItems>>create(subscriber -> {
@@ -100,6 +100,11 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         if (initialItems != null) {
             innerOnItemsLoaded(initialItems, 0, false);
         }
+    }
+
+    @Nullable
+    public TMoreReference getMoreItemsReference() {
+        return moreItemsReference;
     }
 
     @NonNull
@@ -203,7 +208,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         this.loadedItemsFilter = loadedItemsFilter;
     }
 
-    private void innerOnItemsLoaded(@NonNull final TLoadedItems loadedItems, final int insertPosition, final boolean reset) {
+    private void innerOnItemsLoaded(@NonNull final LoadedItems<TItem, TMoreReference> loadedItems, final int insertPosition, final boolean reset) {
         final List<TItem> items = new ArrayList<>(loadedItems.getItems());
         final boolean lastPage = reset || insertPosition > size() - 1;
         if (reset) {

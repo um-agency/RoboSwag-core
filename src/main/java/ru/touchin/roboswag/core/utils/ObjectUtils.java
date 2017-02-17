@@ -25,6 +25,7 @@ import android.support.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.
@@ -89,6 +90,22 @@ public final class ObjectUtils {
         return true;
     }
 
+    /**
+     * Compares two maps if their elements are equals or not.
+     *
+     * @param map1 First object to compare;
+     * @param map2 Second object to compare;
+     * @return True if maps are equals.
+     */
+    @SuppressWarnings("PMD.CompareObjectsWithEquals")
+    //CompareObjectsWithEquals: we need to compare if it's same object
+    public static boolean isMapsEquals(@Nullable final Map<?, ?> map1, @Nullable final Map<?, ?> map2) {
+        return map1 == map2 || !(map1 == null || map2 == null)
+                && map1.size() == map2.size()
+                && map1.entrySet().containsAll(map2.entrySet())
+                && map2.entrySet().containsAll(map1.entrySet());
+    }
+
     @SuppressWarnings("PMD.AvoidUsingShortType")
     private static boolean isArraysEquals(@NonNull final Object object1, @Nullable final Object object2, final Class<?> elementType) {
         if (object1 instanceof Object[]) {
@@ -110,6 +127,16 @@ public final class ObjectUtils {
         } else {
             return Arrays.equals((short[]) object1, (short[]) object2);
         }
+    }
+
+    /**
+     * Calculates hashCode() of several objects.
+     *
+     * @param objects Objects to combine hashCode() of;
+     * @return Calculated hashCode().
+     */
+    public static int hashCode(@Nullable final Object... objects) {
+        return Arrays.hashCode(objects);
     }
 
     /**
