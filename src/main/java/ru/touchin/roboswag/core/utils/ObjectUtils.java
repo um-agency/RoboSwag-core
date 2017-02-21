@@ -107,7 +107,7 @@ public final class ObjectUtils {
     }
 
     @SuppressWarnings("PMD.AvoidUsingShortType")
-    private static boolean isArraysEquals(@NonNull final Object object1, @Nullable final Object object2, final Class<?> elementType) {
+    private static boolean isArraysEquals(@NonNull final Object object1, @Nullable final Object object2, @NonNull final Class<?> elementType) {
         if (object1 instanceof Object[]) {
             return Arrays.deepEquals((Object[]) object1, (Object[]) object2);
         } else if (elementType == int.class) {

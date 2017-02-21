@@ -98,7 +98,7 @@ public final class RxAndroidUtils {
 
         @SuppressWarnings("unchecked")
         @Override
-        public void onServiceConnected(final ComponentName name, final IBinder service) {
+        public void onServiceConnected(@NonNull final ComponentName name, @Nullable final IBinder service) {
             if (subscriber == null) {
                 return;
             }
@@ -111,7 +111,7 @@ public final class RxAndroidUtils {
         }
 
         @Override
-        public void onServiceDisconnected(final ComponentName name) {
+        public void onServiceDisconnected(@NonNull final ComponentName name) {
             if (subscriber != null) {
                 subscriber.onNext(null);
             }
@@ -121,8 +121,9 @@ public final class RxAndroidUtils {
 
     private static class LooperThread extends Thread {
 
+        @NonNull
         private final CountDownLatch isLooperInitialized = new CountDownLatch(1);
-        public Looper looper;
+        private Looper looper;
 
         @Override
         public void run() {

@@ -60,10 +60,10 @@ public class MoreLoadRequest<TMoreReference> {
     }
 
     @Override
-    public boolean equals(final Object obj) {
-        return obj instanceof MoreLoadRequest
-                && ObjectUtils.equals(((MoreLoadRequest) obj).moreReference, moreReference)
-                && ((MoreLoadRequest) obj).nextPosition == nextPosition;
+    public boolean equals(@Nullable final Object object) {
+        return object instanceof MoreLoadRequest
+                && ObjectUtils.equals(((MoreLoadRequest) object).moreReference, moreReference)
+                && ((MoreLoadRequest) object).nextPosition == nextPosition;
     }
 
     @Override

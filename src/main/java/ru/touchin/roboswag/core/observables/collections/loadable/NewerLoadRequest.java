@@ -60,10 +60,10 @@ public class NewerLoadRequest<TNewerReference> {
     }
 
     @Override
-    public boolean equals(final Object obj) {
-        return obj instanceof NewerLoadRequest
-                && ObjectUtils.equals(((NewerLoadRequest) obj).newerReference, newerReference)
-                && ((NewerLoadRequest) obj).newerItemsCount == newerItemsCount;
+    public boolean equals(@Nullable final Object object) {
+        return object instanceof NewerLoadRequest
+                && ObjectUtils.equals(((NewerLoadRequest) object).newerReference, newerReference)
+                && ((NewerLoadRequest) object).newerItemsCount == newerItemsCount;
     }
 
     @Override

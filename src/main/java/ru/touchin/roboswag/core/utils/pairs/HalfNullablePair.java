@@ -66,7 +66,7 @@ public class HalfNullablePair<TFirst, TSecond> implements Serializable {
     }
 
     @Override
-    public boolean equals(final Object object) {
+    public boolean equals(@Nullable final Object object) {
         if (this == object) {
             return true;
         }
