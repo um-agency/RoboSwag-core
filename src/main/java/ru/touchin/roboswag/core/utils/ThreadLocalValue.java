@@ -32,14 +32,23 @@ public class ThreadLocalValue<T> extends ThreadLocal<T> {
     @NonNull
     private final Func0<T> creator;
 
-    public ThreadLocalValue(@NonNull final Func0<T> creator) {
+    public ThreadLocalValue(@NonNull final NonNullFunc<T> creator) {
         super();
         this.creator = creator;
     }
 
+    @NonNull
     @Override
     protected T initialValue() {
         return creator.call();
+    }
+
+    public interface NonNullFunc<T> extends Func0<T> {
+
+        @NonNull
+        @Override
+        T call();
+
     }
 
 }

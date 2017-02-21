@@ -186,7 +186,7 @@ public class LcGroup {
      * @param message Message or format of message to log;
      * @param args    Arguments of formatted message.
      */
-    public void e(@NonNull final String message, final Object... args) {
+    public void e(@NonNull final String message, @NonNull final Object... args) {
         logMessage(LcLevel.ERROR, message, null, args);
     }
 
@@ -197,7 +197,7 @@ public class LcGroup {
      * @param message   Message or format of message to log;
      * @param args      Arguments of formatted message.
      */
-    public void e(@NonNull final Throwable throwable, @NonNull final String message, final Object... args) {
+    public void e(@NonNull final Throwable throwable, @NonNull final String message, @NonNull final Object... args) {
         logMessage(LcLevel.ERROR, message, throwable, args);
     }
 

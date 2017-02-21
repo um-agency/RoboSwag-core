@@ -35,6 +35,7 @@ public class ConsoleLogProcessor extends LogProcessor {
         super(lclevel);
     }
 
+    @NonNull
     private String normalize(@NonNull final String message) {
         return message.replace("\r\n", "\n").replace("\0", "");
     }

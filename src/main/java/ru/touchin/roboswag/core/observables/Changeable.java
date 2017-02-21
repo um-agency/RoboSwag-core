@@ -27,6 +27,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+import ru.touchin.roboswag.core.utils.ObjectUtils;
 import rx.Observable;
 import rx.subjects.BehaviorSubject;
 
@@ -50,7 +51,7 @@ public class Changeable<T> implements Serializable {
      *
      * @param value Value to set.
      */
-    public void set(final T value) {
+    public void set(@Nullable final T value) {
         subject.onNext(value);
     }
 
@@ -74,17 +75,17 @@ public class Changeable<T> implements Serializable {
         return subject.distinctUntilChanged();
     }
 
-    private void writeObject(final ObjectOutputStream outputStream) throws IOException {
+    private void writeObject(@NonNull final ObjectOutputStream outputStream) throws IOException {
         outputStream.writeObject(subject.getValue());
     }
 
     @SuppressWarnings("unchecked")
-    private void readObject(final ObjectInputStream inputStream) throws IOException, ClassNotFoundException {
+    private void readObject(@NonNull final ObjectInputStream inputStream) throws IOException, ClassNotFoundException {
         subject = BehaviorSubject.create((T) inputStream.readObject());
     }
 
     @Override
-    public boolean equals(final Object object) {
+    public boolean equals(@Nullable final Object object) {
         if (this == object) {
             return true;
         }
@@ -93,8 +94,7 @@ public class Changeable<T> implements Serializable {
         }
 
         final Changeable<?> that = (Changeable<?>) object;
-        return subject.getValue() != null ? subject.getValue().equals(that.subject.getValue()) : that.subject.getValue() == null;
-
+        return ObjectUtils.equals(subject.getValue(), that.subject.getValue());
     }
 
     @Override
