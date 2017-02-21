@@ -50,19 +50,19 @@ public class HalfNullablePair<TFirst, TSecond> implements Serializable {
     }
 
     /**
-     * Get first argument of this pair. It is always not null.
-     */
-    @NonNull
-    public TFirst getFirst() {
-        return first;
-    }
-
-    /**
      * Get second argument of this pair. It may be nullable.
      */
     @Nullable
     public TSecond getSecond() {
         return second;
+    }
+
+    /**
+     * Get first argument of this pair. It is always not null.
+     */
+    @NonNull
+    public TFirst getFirst() {
+        return first;
     }
 
     @Override
