@@ -22,18 +22,19 @@ package ru.touchin.roboswag.core.observables.storable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.lang.reflect.Type;
+import java.util.concurrent.Executors;
+
 import ru.touchin.roboswag.core.log.LcGroup;
 import ru.touchin.roboswag.core.observables.ObservableResult;
 import ru.touchin.roboswag.core.observables.RxUtils;
-import ru.touchin.roboswag.core.observables.storable.builders.MigratableStorableBuilder;
 import ru.touchin.roboswag.core.observables.storable.builders.NonNullStorableBuilder;
-import ru.touchin.roboswag.core.observables.storable.builders.SafeStorableBuilder;
 import ru.touchin.roboswag.core.utils.ObjectUtils;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
+import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
 import rx.exceptions.OnErrorThrowable;
-import rx.functions.Actions;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
@@ -55,11 +56,22 @@ public class Storable<TKey, TObject, TStoreObject> {
     public static final LcGroup STORABLE_LC_GROUP = new LcGroup("STORABLE");
 
     @NonNull
+    private static ObserveStrategy getDefaultObserveStrategyFor(@NonNull final Type objectType, @NonNull final Type storeObjectType) {
+        if (objectType instanceof Class && ObjectUtils.isSimpleClass((Class) objectType)) {
+            return ObserveStrategy.CACHE_ACTUAL_VALUE;
+        }
+        if (objectType instanceof Class && ObjectUtils.isSimpleClass((Class) storeObjectType)) {
+            return ObserveStrategy.CACHE_STORE_VALUE;
+        }
+        return ObserveStrategy.NO_CACHE;
+    }
+
+    @NonNull
     private final TKey key;
     @NonNull
-    private final Class<TObject> objectClass;
+    private final Type objectType;
     @NonNull
-    private final Class<TStoreObject> storeObjectClass;
+    private final Type storeObjectType;
     @NonNull
     private final Store<TKey, TStoreObject> store;
     @NonNull
@@ -67,113 +79,97 @@ public class Storable<TKey, TObject, TStoreObject> {
     @NonNull
     private final PublishSubject<TStoreObject> newStoreValueEvent = PublishSubject.create();
     @NonNull
+    private final Observable<TStoreObject> storeValueObservable;
+    @NonNull
     private final Observable<TObject> valueObservable;
+    @NonNull
+    private final Scheduler scheduler;
 
     public Storable(@NonNull final BuilderCore<TKey, TObject, TStoreObject> builderCore) {
-        this(builderCore.key, builderCore.objectClass, builderCore.storeObjectClass,
+        this(builderCore.key, builderCore.objectType, builderCore.storeObjectType,
                 builderCore.store, builderCore.converter, builderCore.observeStrategy,
                 builderCore.migration, builderCore.defaultValue, builderCore.storeScheduler);
     }
 
     public Storable(@NonNull final TKey key,
-                    @NonNull final Class<TObject> objectClass,
-                    @Nullable final Class<TStoreObject> storeObjectClass,
-                    @Nullable final Store<TKey, TStoreObject> store,
-                    @Nullable final Converter<TObject, TStoreObject> converter,
+                    @NonNull final Type objectType,
+                    @NonNull final Type storeObjectType,
+                    @NonNull final Store<TKey, TStoreObject> store,
+                    @NonNull final Converter<TObject, TStoreObject> converter,
                     @Nullable final ObserveStrategy observeStrategy,
                     @Nullable final Migration<TKey> migration,
                     @Nullable final TObject defaultValue,
                     @Nullable final Scheduler storeScheduler) {
-        if (storeObjectClass == null || store == null || converter == null) {
-            throw new ShouldNotHappenException();
-        }
         this.key = key;
-        this.objectClass = objectClass;
-        this.storeObjectClass = storeObjectClass;
+        this.objectType = objectType;
+        this.storeObjectType = storeObjectType;
         this.store = store;
         this.converter = converter;
-        final ObserveStrategy nonNullObserveStrategy = observeStrategy != null ? observeStrategy : getDefaultGetStrategy();
-        final Observable<TStoreObject> storeValueObservable
-                = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue, storeScheduler);
-        valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy, storeScheduler);
-    }
-
-    @NonNull
-    private ObserveStrategy getDefaultGetStrategy() {
-        if (ObjectUtils.isSimpleClass(objectClass)) {
-            return ObserveStrategy.CACHE_ACTUAL_VALUE;
-        }
-        if (ObjectUtils.isSimpleClass(storeObjectClass)) {
-            return ObserveStrategy.CACHE_STORE_VALUE;
-        }
-        return ObserveStrategy.NO_CACHE;
+        final ObserveStrategy nonNullObserveStrategy = observeStrategy != null ? observeStrategy : getDefaultObserveStrategyFor(objectType, storeObjectType);
+        scheduler = storeScheduler != null ? storeScheduler : Schedulers.from(Executors.newSingleThreadExecutor());
+        storeValueObservable
+                = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue);
+        valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy);
     }
 
     @Nullable
     private TStoreObject returnDefaultValueIfNull(@Nullable final TStoreObject storeObject, @Nullable final TObject defaultValue) {
-        if (storeObject == null && defaultValue != null) {
-            try {
-                return converter.toStoreObject(objectClass, storeObjectClass, defaultValue);
-            } catch (final Converter.ConversionException exception) {
-                STORABLE_LC_GROUP.w(exception, "Exception while converting default value of '%s' from '%s' from store %s",
-                        key, defaultValue, store);
-                throw OnErrorThrowable.from(exception);
-            } catch (final RuntimeException throwable) {
-                STORABLE_LC_GROUP.assertion(throwable);
-            }
+        if (storeObject != null || defaultValue == null) {
+            return storeObject;
         }
-        return storeObject;
+
+        try {
+            return converter.toStoreObject(objectType, storeObjectType, defaultValue);
+        } catch (final Converter.ConversionException exception) {
+            STORABLE_LC_GROUP.w(exception, "Exception while converting default value of '%s' from '%s' from store %s",
+                    key, defaultValue, store);
+            throw OnErrorThrowable.from(exception);
+        } catch (final RuntimeException throwable) {
+            STORABLE_LC_GROUP.assertion(throwable);
+            throw OnErrorThrowable.from(throwable);
+        }
     }
 
     @NonNull
     private Observable<TStoreObject> createStoreValueObservable(@NonNull final ObserveStrategy observeStrategy,
                                                                 @Nullable final Migration<TKey> migration,
-                                                                @Nullable final TObject defaultValue,
-                                                                @Nullable final Scheduler storeScheduler) {
-        final Observable<TStoreObject> result = Observable
-                .<TStoreObject>create(subscriber -> {
-                    try {
-                        if (migration != null) {
-                            migration.migrateToLatestVersion(key);
-                        }
-                        subscriber.onNext(store.loadObject(storeObjectClass, key));
-                        subscriber.onCompleted();
-                    } catch (final Store.StoreException storeException) {
-                        STORABLE_LC_GROUP.w(storeException, "Exception while trying to get value of '%s' from store %s", key, store);
-                        subscriber.onError(storeException);
-                    } catch (final Migration.MigrationException migrationException) {
-                        STORABLE_LC_GROUP.assertion(migrationException);
-                        subscriber.onError(migrationException);
-                    } catch (final RuntimeException throwable) {
+                                                                @Nullable final TObject defaultValue) {
+        final Observable<TStoreObject> result = (migration != null
+                ? migration.migrateToLatestVersion(key).subscribeOn(scheduler)
+                : Completable.complete())
+                .andThen(store.loadObject(storeObjectType, key).toObservable().subscribeOn(scheduler))
+                .doOnError(throwable -> {
+                    if (throwable instanceof RuntimeException) {
                         STORABLE_LC_GROUP.assertion(throwable);
+                    } else {
+                        STORABLE_LC_GROUP.w(throwable, "Exception while trying to load value of '%s' from store %s", key, store);
                     }
                 })
-                .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.io())
                 .concatWith(newStoreValueEvent)
                 .map(storeObject -> returnDefaultValueIfNull(storeObject, defaultValue));
-        return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE ? result : result.replay(1).refCount();
+        return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE || observeStrategy == ObserveStrategy.CACHE_STORE_AND_ACTUAL_VALUE
+                ? result
+                : result.replay(1).refCount();
     }
 
     @NonNull
     private Observable<TObject> createValueObservable(@NonNull final Observable<TStoreObject> storeValueObservable,
-                                                      @NonNull final ObserveStrategy observeStrategy,
-                                                      @Nullable final Scheduler storeScheduler) {
+                                                      @NonNull final ObserveStrategy observeStrategy) {
         final Observable<TObject> result = storeValueObservable
-                .map(storeObject -> {
-                    try {
-                        return converter.toObject(objectClass, storeObjectClass, storeObject);
-                    } catch (final Converter.ConversionException exception) {
-                        STORABLE_LC_GROUP.w(exception, "Exception while converting value of '%s' from '%s' from store %s",
-                                key, storeObject, store);
-                        throw OnErrorThrowable.from(exception);
-                    } catch (final RuntimeException throwable) {
-                        STORABLE_LC_GROUP.assertion(throwable);
-                        throw OnErrorThrowable.from(throwable);
-                    }
-                })
-                .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.computation());
-
-        return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE ? result : result.replay(1).refCount();
+                .switchMap(storeObject -> Observable
+                        .fromCallable(() -> converter.toObject(objectType, storeObjectType, storeObject))
+                        .subscribeOn(scheduler)
+                        .doOnError(throwable -> {
+                            if (throwable instanceof RuntimeException) {
+                                STORABLE_LC_GROUP.assertion(throwable);
+                            } else {
+                                STORABLE_LC_GROUP.w(throwable, "Exception while trying to converting value of '%s' from store %s by %s",
+                                        key, storeObject, store, converter);
+                            }
+                        }));
+        return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE || observeStrategy == ObserveStrategy.CACHE_STORE_AND_ACTUAL_VALUE
+                ? result
+                : result.replay(1).refCount();
     }
 
     /**
@@ -187,23 +183,23 @@ public class Storable<TKey, TObject, TStoreObject> {
     }
 
     /**
-     * Returns class of actual object.
+     * Returns type of actual object.
      *
-     * @return Class of actual object.
+     * @return Type of actual object.
      */
     @NonNull
-    public Class<TObject> getObjectClass() {
-        return objectClass;
+    public Type getObjectType() {
+        return objectType;
     }
 
     /**
-     * Returns class of store object.
+     * Returns type of store object.
      *
-     * @return Class of store object.
+     * @return Type of store object.
      */
     @NonNull
-    public Class<TStoreObject> getStoreObjectClass() {
-        return storeObjectClass;
+    public Type getStoreObjectType() {
+        return storeObjectType;
     }
 
     /**
@@ -228,66 +224,58 @@ public class Storable<TKey, TObject, TStoreObject> {
 
     /**
      * Creates observable which is async setting value to store.
-     * NOTE: It could emit ONLY completed and errors events. It is not providing onNext event!
-     * Errors won't be emitted if {@link #getStore()} implements {@link SafeStore} and {@link #getConverter()} implements {@link SafeConverter}.
+     * NOTE: It could emit ONLY completed and errors events. It is not providing onNext event! //TODO: it's Completable :(
      *
      * @param newValue Value to set;
      * @return Observable of setting process.
      */
     @NonNull
     public Observable<?> set(@Nullable final TObject newValue) {
-        return valueObservable
+        return storeValueObservable
                 .first()
-                .switchMap(value -> ObjectUtils.equals(value, newValue)
-                        ? Observable.empty()
-                        : Observable
-                        .<TStoreObject>create(subscriber -> {
-                            try {
-                                final TStoreObject storeObject = converter.toStoreObject(objectClass, storeObjectClass, newValue);
-                                store.storeObject(storeObjectClass, key, storeObject);
-                                newStoreValueEvent.onNext(storeObject);
-                                STORABLE_LC_GROUP.i("Value of '%s' changed from '%s' to '%s'", key, value, newValue);
-                                subscriber.onCompleted();
-                            } catch (final Converter.ConversionException conversionException) {
-                                STORABLE_LC_GROUP.w(conversionException, "Exception while converting value of '%s' from '%s' to store object",
-                                        key, newValue, store);
-                                subscriber.onError(conversionException);
-                            } catch (final Store.StoreException storeException) {
-                                STORABLE_LC_GROUP.w(storeException, "Exception while trying to store value of '%s' to store %s", key, store);
-                                subscriber.onError(storeException);
-                            } catch (final RuntimeException throwable) {
-                                STORABLE_LC_GROUP.assertion(throwable);
+                .switchMap(oldStoreValue -> Observable
+                        .fromCallable(() -> converter.toStoreObject(objectType, storeObjectType, newValue))
+                        .subscribeOn(scheduler)
+                        .switchMap(newStoreValue -> {
+                            if (ObjectUtils.equals(newStoreValue, oldStoreValue)) {
+                                return Observable.empty();
                             }
-                        }));
-    }
-
-    /**
-     * Setting value in background. If error emits then it will raise assertion.
-     *
-     * @param newValue Value to set.
-     */
-    public void setCalm(@Nullable final TObject newValue) {
-        set(newValue).subscribe(Actions.empty(), STORABLE_LC_GROUP::assertion);
+                            return store.storeObject(storeObjectType, key, newStoreValue)
+                                    .doOnCompleted(() -> {
+                                        newStoreValueEvent.onNext(newStoreValue);
+                                        STORABLE_LC_GROUP.i("Value of '%s' changed from '%s' to '%s'", key, oldStoreValue, newStoreValue);
+                                    })
+                                    .toObservable();
+                        }))
+                .doOnError(throwable -> {
+                    if (throwable instanceof RuntimeException) {
+                        STORABLE_LC_GROUP.assertion(throwable);
+                    } else {
+                        STORABLE_LC_GROUP.w(throwable, "Exception while trying to store value of '%s' from store %s by %s",
+                                key, newValue, store, converter);
+                    }
+                });
     }
 
     /**
      * Sets value synchronously. You should NOT use this method normally. Use {@link #set(Object)} asynchronously instead.
      *
      * @param newValue Value to set;
-     * @throws Store.StoreException          Throws if {@link Store} threw exception during storing;
      * @throws Converter.ConversionException Throws if {@link Converter} threw exception during conversion;
      * @throws Migration.MigrationException  Throws if {@link Migration} threw exception during migration.
      */
-    public void setSync(@Nullable final TObject newValue)
-            throws Store.StoreException, Converter.ConversionException, Migration.MigrationException {
+    @Deprecated
+    //deprecation: it should be used for debug only and in very rare cases.
+    public void setSync(@Nullable final TObject newValue) throws Throwable {
         final ObservableResult<?> setResult = RxUtils.executeSync(set(newValue));
-        checkStorableObservableResult(setResult);
+        if (setResult.getError() != null) {
+            throw setResult.getError();
+        }
     }
 
     /**
      * Returns Observable which is emitting item on subscribe and every time when someone have changed value.
      * It could emit next and error events but not completed.
-     * Errors won't be emitted if {@link #getStore()} implements {@link SafeStore} and {@link #getConverter()} implements {@link SafeConverter}.
      *
      * @return Returns observable of value.
      */
@@ -297,9 +285,8 @@ public class Storable<TKey, TObject, TStoreObject> {
     }
 
     /**
-     * Returns Observable which is emitting only one item on subscribe.
+     * Returns Observable which is emitting only one item on subscribe. //TODO: it's Single :(
      * It could emit next and error events but not completed.
-     * Errors won't be emitted if {@link #getStore()} implements {@link SafeStore} and {@link #getConverter()} implements {@link SafeConverter}.
      *
      * @return Returns observable of value.
      */
@@ -312,38 +299,25 @@ public class Storable<TKey, TObject, TStoreObject> {
      * Gets value synchronously. You should NOT use this method normally. Use {@link #get()} or {@link #observe()} asynchronously instead.
      *
      * @return Returns value;
-     * @throws Store.StoreException          Throws if {@link Store} threw exception during getting from store;
      * @throws Converter.ConversionException Throws if {@link Converter} threw exception during conversion;
      * @throws Migration.MigrationException  Throws if {@link Migration} threw exception during migration.
      */
+    @Deprecated
+    //deprecation: it should be used for debug only and in very rare cases.
     @Nullable
-    public TObject getSync()
-            throws Store.StoreException, Converter.ConversionException, Migration.MigrationException {
+    public TObject getSync() throws Throwable {
         final ObservableResult<TObject> getResult = RxUtils.executeSync(get());
-        checkStorableObservableResult(getResult);
+        if (getResult.getError() != null) {
+            throw getResult.getError();
+        }
         if (getResult.getItems().size() != 1) {
             throw new ShouldNotHappenException();
         }
         return getResult.getItems().get(0);
     }
 
-    private void checkStorableObservableResult(@NonNull final ObservableResult<?> result)
-            throws Store.StoreException, Converter.ConversionException, Migration.MigrationException {
-        for (final Throwable throwable : result.getErrors()) {
-            if (throwable instanceof Store.StoreException) {
-                throw (Store.StoreException) throwable;
-            }
-            if (throwable instanceof Converter.ConversionException) {
-                throw (Converter.ConversionException) throwable;
-            }
-            if (throwable instanceof Migration.MigrationException) {
-                throw (Migration.MigrationException) throwable;
-            }
-        }
-    }
-
     /**
-     * Class that is representing strategy of observing item from store.
+     * Enum that is representing strategy of observing item from store.
      */
     public enum ObserveStrategy {
 
@@ -358,10 +332,19 @@ public class Storable<TKey, TObject, TStoreObject> {
         CACHE_STORE_VALUE,
         /**
          * Caching value so it won't spend time for getting value from {@link #getStore()} and converts it by {@link #getConverter()}.
-         * Do not use such strategy if object could be big (like byte-array of file).
+         * But it will take time for getting value from {@link #getStore()} to set value.
+         * Do not use such strategy if object could be big (like Bitmap or long string).
          * Do not use such strategy if object is mutable because multiple subscribers could then change it's state.
          */
-        CACHE_ACTUAL_VALUE
+        CACHE_ACTUAL_VALUE,
+        /**
+         * Caching value so it won't spend time for getting value from {@link #getStore()} and converts it by {@link #getConverter()}.
+         * It won't take time or getting value from {@link #getStore()} to set value.
+         * Do not use such strategy if store object could be big (like byte-array of file).
+         * Do not use such strategy if object could be big (like Bitmap or long string).
+         * Do not use such strategy if object is mutable because multiple subscribers could then change it's state.
+         */
+        CACHE_STORE_AND_ACTUAL_VALUE
 
     }
 
@@ -377,49 +360,48 @@ public class Storable<TKey, TObject, TStoreObject> {
         @NonNull
         protected final TKey key;
         @NonNull
-        protected final Class<TObject> objectClass;
+        protected final Type objectType;
+        @NonNull
+        private final Type storeObjectType;
+        @NonNull
+        private final Store<TKey, TStoreObject> store;
+        @NonNull
+        private final Converter<TObject, TStoreObject> converter;
         @Nullable
-        private Class<TStoreObject> storeObjectClass;
-        @Nullable
-        private Store<TKey, TStoreObject> store;
-        @Nullable
-        private Converter<TObject, TStoreObject> converter;
-        @Nullable
-        protected final ObserveStrategy observeStrategy;
+        private ObserveStrategy observeStrategy;
         @Nullable
         private Migration<TKey> migration;
         @Nullable
         private TObject defaultValue;
         @Nullable
-        protected final Scheduler storeScheduler;
+        private Scheduler storeScheduler;
 
         protected BuilderCore(@NonNull final TKey key,
-                              @NonNull final Class<TObject> objectClass,
-                              @Nullable final ObserveStrategy observeStrategy,
-                              @Nullable final Scheduler storeScheduler) {
-            this(key, objectClass, null, null, null, observeStrategy, null, null, storeScheduler);
+                              @NonNull final Type objectType,
+                              @NonNull final Type storeObjectType,
+                              @NonNull final Store<TKey, TStoreObject> store,
+                              @NonNull final Converter<TObject, TStoreObject> converter) {
+            this(key, objectType, storeObjectType, store, converter, null, null, null, null);
         }
 
         protected BuilderCore(@NonNull final BuilderCore<TKey, TObject, TStoreObject> sourceBuilder) {
-            this(sourceBuilder.key, sourceBuilder.objectClass, sourceBuilder.storeObjectClass,
+            this(sourceBuilder.key, sourceBuilder.objectType, sourceBuilder.storeObjectType,
                     sourceBuilder.store, sourceBuilder.converter, sourceBuilder.observeStrategy,
                     sourceBuilder.migration, sourceBuilder.defaultValue, sourceBuilder.storeScheduler);
         }
 
-        @SuppressWarnings("CPD-START")
-        //CPD: it is ok that builder copy-pasted parent constructor parameters
         private BuilderCore(@NonNull final TKey key,
-                            @NonNull final Class<TObject> objectClass,
-                            @Nullable final Class<TStoreObject> storeObjectClass,
-                            @Nullable final Store<TKey, TStoreObject> store,
-                            @Nullable final Converter<TObject, TStoreObject> converter,
+                            @NonNull final Type objectType,
+                            @NonNull final Type storeObjectType,
+                            @NonNull final Store<TKey, TStoreObject> store,
+                            @NonNull final Converter<TObject, TStoreObject> converter,
                             @Nullable final ObserveStrategy observeStrategy,
                             @Nullable final Migration<TKey> migration,
                             @Nullable final TObject defaultValue,
                             @Nullable final Scheduler storeScheduler) {
             this.key = key;
-            this.objectClass = objectClass;
-            this.storeObjectClass = storeObjectClass;
+            this.objectType = objectType;
+            this.storeObjectType = storeObjectType;
             this.store = store;
             this.converter = converter;
             this.observeStrategy = observeStrategy;
@@ -428,61 +410,20 @@ public class Storable<TKey, TObject, TStoreObject> {
             this.storeScheduler = storeScheduler;
         }
 
-        @SuppressWarnings("CPD-END")
-        @Nullable
-        public Class<TStoreObject> getStoreObjectClass() {
-            return storeObjectClass;
+        protected void setStoreSchedulerInternal(@Nullable final Scheduler storeScheduler) {
+            this.storeScheduler = storeScheduler;
         }
 
-        /**
-         * Returns {@link Store} where store class representation of object is storing.
-         *
-         * @return Store.
-         */
-        @Nullable
-        public Store<TKey, TStoreObject> getStore() {
-            return store;
-        }
-
-        protected void setStoreInternal(@NonNull final Class<TStoreObject> storeObjectClass,
-                                        @NonNull final Store<TKey, TStoreObject> store,
-                                        @NonNull final Converter<TObject, TStoreObject> converter) {
-            this.storeObjectClass = storeObjectClass;
-            this.store = store;
-            this.converter = converter;
-        }
-
-        /**
-         * Returns {@link Converter} to convert values from store class to actual and back.
-         *
-         * @return Converter.
-         */
-        @Nullable
-        public Converter<TObject, TStoreObject> getConverter() {
-            return converter;
-        }
-
-        /**
-         * Returns {@link Migration} to migrate values from specific version to latest version.
-         *
-         * @return Migration.
-         */
-        @Nullable
-        public Migration<TKey> getMigration() {
-            return migration;
+        protected void setObserveStrategyInternal(@Nullable final ObserveStrategy observeStrategy) {
+            this.observeStrategy = observeStrategy;
         }
 
         protected void setMigrationInternal(@NonNull final Migration<TKey> migration) {
             this.migration = migration;
         }
 
-        /**
-         * Returns value which will be returned instead of null.
-         *
-         * @return Default value.
-         */
         @Nullable
-        public TObject getDefaultValue() {
+        protected TObject getDefaultValue() {
             return defaultValue;
         }
 
@@ -502,59 +443,35 @@ public class Storable<TKey, TObject, TStoreObject> {
     public static class Builder<TKey, TObject, TStoreObject> extends BuilderCore<TKey, TObject, TStoreObject> {
 
         public Builder(@NonNull final TKey key,
-                       @NonNull final Class<TObject> objectClass) {
-            super(key, objectClass, null, null);
-        }
-
-        public Builder(@NonNull final TKey key,
-                       @NonNull final Class<TObject> objectClass,
-                       @NonNull final ObserveStrategy observeStrategy) {
-            super(key, objectClass, observeStrategy, null);
-        }
-
-        public Builder(@NonNull final TKey key,
-                       @NonNull final Class<TObject> objectClass,
-                       @NonNull final Scheduler storeScheduler) {
-            super(key, objectClass, null, storeScheduler);
-        }
-
-        public Builder(@NonNull final TKey key,
-                       @NonNull final Class<TObject> objectClass,
-                       @NonNull final ObserveStrategy observeStrategy,
-                       @NonNull final Scheduler storeScheduler) {
-            super(key, objectClass, observeStrategy, storeScheduler);
+                       @NonNull final Type objectType,
+                       @NonNull final Type storeObjectType,
+                       @NonNull final Store<TKey, TStoreObject> store,
+                       @NonNull final Converter<TObject, TStoreObject> converter) {
+            super(key, objectType, storeObjectType, store, converter);
         }
 
         /**
-         * Sets store and converter.
+         * Sets specific {@link Scheduler} to store/load/convert values on it.
          *
-         * @param storeObjectClass Class of store object,
-         * @param store            Store to store objects into;
-         * @param converter        Converter to convert values from store class to actual class and back;
+         * @param storeScheduler Scheduler;
          * @return Builder that allows to specify other fields.
          */
         @NonNull
-        public Builder<TKey, TObject, TStoreObject> setStore(@NonNull final Class<TStoreObject> storeObjectClass,
-                                                             @NonNull final Store<TKey, TStoreObject> store,
-                                                             @NonNull final Converter<TObject, TStoreObject> converter) {
-            setStoreInternal(storeObjectClass, store, converter);
+        public Builder<TKey, TObject, TStoreObject> setStoreScheduler(@Nullable final Scheduler storeScheduler) {
+            setStoreSchedulerInternal(storeScheduler);
             return this;
         }
 
         /**
-         * Sets safe store and converter so in such {@link Storable} it is not needed to specify onError action
-         * when subscribing to {@link Storable#set(Object)}, {@link Storable#get()} or {@link Storable#observe()} methods.
+         * Sets specific {@link ObserveStrategy} to cache value in memory in specific way.
          *
-         * @param storeObjectClass Class of store object,
-         * @param store            Safe store that is not throwing exceptions;
-         * @param converter        Safe converter that is not throwing exceptions;
+         * @param observeStrategy ObserveStrategy;
          * @return Builder that allows to specify other fields.
          */
         @NonNull
-        public SafeStorableBuilder<TKey, TObject, TStoreObject> setSafeStore(@NonNull final Class<TStoreObject> storeObjectClass,
-                                                                             @NonNull final SafeStore<TKey, TStoreObject> store,
-                                                                             @NonNull final SafeConverter<TObject, TStoreObject> converter) {
-            return new SafeStorableBuilder<>(this, storeObjectClass, store, converter);
+        public Builder<TKey, TObject, TStoreObject> setObserveStrategy(@Nullable final ObserveStrategy observeStrategy) {
+            setObserveStrategyInternal(observeStrategy);
+            return this;
         }
 
         /**
@@ -564,8 +481,9 @@ public class Storable<TKey, TObject, TStoreObject> {
          * @return Builder that allows to specify other fields.
          */
         @NonNull
-        public MigratableStorableBuilder<TKey, TObject, TStoreObject> setMigration(@NonNull final Migration<TKey> migration) {
-            return new MigratableStorableBuilder<>(this, migration);
+        public Builder<TKey, TObject, TStoreObject> setMigration(@NonNull final Migration<TKey> migration) {
+            setMigrationInternal(migration);
+            return this;
         }
 
         /**
@@ -587,6 +505,11 @@ public class Storable<TKey, TObject, TStoreObject> {
         @NonNull
         public Storable<TKey, TObject, TStoreObject> build() {
             return new Storable<>(this);
+        }
+
+        @Override
+        protected void setObserveStrategyInternal(@Nullable final ObserveStrategy observeStrategy) {
+            super.setObserveStrategyInternal(observeStrategy);
         }
 
     }

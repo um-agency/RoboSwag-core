@@ -21,11 +21,7 @@ package ru.touchin.roboswag.core.observables.storable.concrete;
 
 import android.support.annotation.NonNull;
 
-import ru.touchin.roboswag.core.observables.storable.Converter;
-import ru.touchin.roboswag.core.observables.storable.Migration;
 import ru.touchin.roboswag.core.observables.storable.Storable;
-import ru.touchin.roboswag.core.observables.storable.Store;
-import ru.touchin.roboswag.core.observables.storable.builders.NonNullMigratableStorableBuilder;
 import ru.touchin.roboswag.core.observables.storable.builders.NonNullStorableBuilder;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 
@@ -44,13 +40,9 @@ public class NonNullStorable<TKey, TObject, TStoreObject> extends Storable<TKey,
         super(builderCore);
     }
 
-    public NonNullStorable(@NonNull final NonNullMigratableStorableBuilder<TKey, TObject, TStoreObject> builderCore) {
-        super(builderCore);
-    }
-
     @NonNull
     @Override
-    public TObject getSync() throws Store.StoreException, Converter.ConversionException, Migration.MigrationException {
+    public TObject getSync() {
         final TObject result = super.getSync();
         if (result == null) {
             throw new ShouldNotHappenException();

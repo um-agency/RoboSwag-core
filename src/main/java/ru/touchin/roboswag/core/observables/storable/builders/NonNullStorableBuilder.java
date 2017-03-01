@@ -21,12 +21,8 @@ package ru.touchin.roboswag.core.observables.storable.builders;
 
 import android.support.annotation.NonNull;
 
-import ru.touchin.roboswag.core.observables.storable.Converter;
 import ru.touchin.roboswag.core.observables.storable.Migration;
-import ru.touchin.roboswag.core.observables.storable.SafeConverter;
-import ru.touchin.roboswag.core.observables.storable.SafeStore;
 import ru.touchin.roboswag.core.observables.storable.Storable;
-import ru.touchin.roboswag.core.observables.storable.Store;
 import ru.touchin.roboswag.core.observables.storable.concrete.NonNullStorable;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 
@@ -47,48 +43,15 @@ public class NonNullStorableBuilder<TKey, TObject, TStoreObject> extends Storabl
     }
 
     /**
-     * Sets store and converter.
-     *
-     * @param storeObjectClass Class of store object,
-     * @param store            Store to store objects into;
-     * @param converter        Converter to convert values from store class to actual class and back;
-     * @return Builder that allows to specify other fields.
-     */
-    @NonNull
-    public NonNullStorableBuilder<TKey, TObject, TStoreObject> setStore(@NonNull final Class<TStoreObject> storeObjectClass,
-                                                                        @NonNull final Store<TKey, TStoreObject> store,
-                                                                        @NonNull final Converter<TObject, TStoreObject> converter) {
-        setStoreInternal(storeObjectClass, store, converter);
-        return this;
-    }
-
-    /**
-     * Sets safe store and converter so in such {@link Storable} it is not needed to specify onError action
-     * when subscribing to {@link Storable#set(Object)}, {@link Storable#get()} or {@link Storable#observe()} methods.
-     *
-     * @param storeObjectClass Class of store object,
-     * @param store            Safe store that is not throwing exceptions;
-     * @param converter        Safe converter that is not throwing exceptions;
-     * @return Builder that allows to specify other fields.
-     */
-    @NonNull
-    public NonNullSafeStorableBuilder<TKey, TObject, TStoreObject> setSafeStore(@NonNull final Class<TStoreObject> storeObjectClass,
-                                                                                @NonNull final SafeStore<TKey, TStoreObject> store,
-                                                                                @NonNull final SafeConverter<TObject, TStoreObject> converter) {
-        setStoreInternal(storeObjectClass, store, converter);
-        return new NonNullSafeStorableBuilder<>(this);
-    }
-
-    /**
      * Sets specific {@link Migration} to migrate values from specific version to latest version.
      *
      * @param migration Migration;
      * @return Builder that allows to specify other fields.
      */
     @NonNull
-    public NonNullMigratableStorableBuilder<TKey, TObject, TStoreObject> setMigration(@NonNull final Migration<TKey> migration) {
+    public NonNullStorableBuilder<TKey, TObject, TStoreObject> setMigration(@NonNull final Migration<TKey> migration) {
         setMigrationInternal(migration);
-        return new NonNullMigratableStorableBuilder<>(this);
+        return this;
     }
 
     /**

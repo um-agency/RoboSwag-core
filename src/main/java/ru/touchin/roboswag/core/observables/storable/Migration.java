@@ -20,10 +20,14 @@
 package ru.touchin.roboswag.core.observables.storable;
 
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
+
+import rx.Completable;
+import rx.Observable;
+import rx.Single;
+import rx.exceptions.OnErrorThrowable;
 
 /**
  * Created by Gavriil Sitnikov on 06/10/2015.
@@ -51,60 +55,97 @@ public class Migration<TKey> {
         this.migrators = Arrays.asList(migrators);
     }
 
-    private long loadCurrentVersion(@NonNull final TKey key) throws MigrationException {
-        final Long result;
-        try {
-            result = versionsStore.loadObject(Long.class, key);
-        } catch (final Store.StoreException throwable) {
-            throw new MigrationException(String.format("Can't get version of '%s' from %s", key, versionsStore), throwable);
-        }
-        return result != null ? result : DEFAULT_VERSION;
-    }
-
-    private void checkMigrationResult(@NonNull final TKey key, final long oldVersion, final long currentVersion, @Nullable final Migrator migrator)
-            throws MigrationException {
-        if (oldVersion > currentVersion) {
-            throw new MigrationException(String.format("Version of '%s' downgraded from %s to %s [from %s by %s]",
-                    key, oldVersion, currentVersion, versionsStore, migrator));
-        }
-        if (currentVersion > latestVersion) {
-            throw new MigrationException(String.format("Version of '%s' is %s and higher than latest version %s [from %s by %s]",
-                    key, oldVersion, currentVersion, versionsStore, migrator));
-        }
-        if (oldVersion == currentVersion && migrator != null) {
-            throw new MigrationException(String.format("Version of '%s' is %s and stood same [from %s by %s]",
-                    key, currentVersion, versionsStore, migrator));
-        }
+    @NonNull
+    private Single<Long> loadCurrentVersion(@NonNull final TKey key) {
+        return versionsStore.loadObject(Long.class, key)
+                .map(version -> version != null ? version : DEFAULT_VERSION)
+                .onErrorResumeNext(throwable
+                        -> Single.error(new MigrationException(String.format("Can't get version of '%s' from %s", key, versionsStore), throwable)));
     }
 
     /**
      * Migrates some object by key to latest version.
      *
-     * @param key Key of object to migrate;
-     * @throws MigrationException Exception during object migration. Usually it indicates illegal state.
+     * @param key Key of object to migrate.
      */
-    public void migrateToLatestVersion(@NonNull final TKey key) throws MigrationException {
-        long currentVersion = loadCurrentVersion(key);
-
-        while (currentVersion != latestVersion) {
-            final long oldVersion = currentVersion;
-            for (final Migrator<TKey, ?, ?> migrator : migrators) {
-                if (migrator.supportsMigrationFor(currentVersion) && migrator.canMigrate(key, currentVersion)) {
-                    currentVersion = migrator.migrate(key, currentVersion);
-                    checkMigrationResult(key, oldVersion, currentVersion, migrator);
-                }
-                checkMigrationResult(key, oldVersion, currentVersion, null);
-            }
-        }
-
-        try {
-            versionsStore.storeObject(Long.class, key, latestVersion);
-        } catch (final Store.StoreException throwable) {
-            throw new MigrationException(String.format("Can't store version %s of '%s' into %s", key, currentVersion, versionsStore), throwable);
-        }
+    @NonNull
+    public Completable migrateToLatestVersion(@NonNull final TKey key) {
+        return loadCurrentVersion(key)
+                .flatMap(currentVersion -> {
+                    final VersionUpdater versionUpdater = new VersionUpdater<>(key, versionsStore, currentVersion);
+                    Single<Long> chain = Single.fromCallable(() -> versionUpdater.initialVersion);
+                    for (final Migrator<TKey, ?, ?> migrator : migrators) {
+                        chain = chain.flatMap(updatedVersion ->
+                                migrator.canMigrate(key, updatedVersion)
+                                        .flatMap(canMigrate -> canMigrate
+                                                ? migrator.migrate(key, updatedVersion)
+                                                .doOnSuccess(newVersion
+                                                        -> versionUpdater.updateVersion(newVersion, latestVersion, migrator))
+                                                : Single.just(updatedVersion)));
+                    }
+                    return chain
+                            .doOnSuccess(lastUpdatedVersion -> {
+                                if (lastUpdatedVersion < latestVersion) {
+                                    throw OnErrorThrowable.from(new NextLoopMigrationException());
+                                }
+                                if (versionUpdater.initialVersion == versionUpdater.oldVersion) {
+                                    throw new MigrationException(String.format("Version of '%s' not updated from %s",
+                                            key, versionUpdater.initialVersion));
+                                }
+                            })
+                            .retryWhen(attempts -> attempts.switchMap(throwable -> throwable instanceof NextLoopMigrationException
+                                    ? Observable.just(null) : Observable.error(throwable)));
+                })
+                .toCompletable()
+                .andThen(versionsStore.storeObject(Long.class, key, latestVersion))
+                .onErrorResumeNext(throwable -> {
+                    if (throwable instanceof MigrationException) {
+                        return Completable.error(throwable);
+                    }
+                    return Completable.error(new MigrationException(String.format("Can't migrate '%s'", key), throwable));
+                });
     }
 
-    public static class MigrationException extends Exception {
+    private static class VersionUpdater<TKey> {
+
+        @NonNull
+        private final TKey key;
+        @NonNull
+        private final Store versionsStore;
+        private long oldVersion;
+        private long initialVersion;
+
+        public VersionUpdater(@NonNull final TKey key, @NonNull final Store versionsStore, final long initialVersion) {
+            this.key = key;
+            this.versionsStore = versionsStore;
+            this.oldVersion = initialVersion;
+            this.initialVersion = initialVersion;
+        }
+
+        public void updateVersion(final long updateVersion, final long latestVersion, @NonNull final Migrator migrator) {
+            if (initialVersion > updateVersion) {
+                throw new MigrationException(String.format("Version of '%s' downgraded from %s to %s [from %s by %s]",
+                        key, initialVersion, updateVersion, versionsStore, migrator));
+            }
+            if (updateVersion > latestVersion) {
+                throw new MigrationException(
+                        String.format("Version of '%s' is %s and higher than latest version %s [from %s by %s]",
+                                key, initialVersion, updateVersion, versionsStore, migrator));
+            }
+            if (updateVersion == initialVersion) {
+                throw new MigrationException(String.format("Update version of '%s' equals current version '%s' [from %s by %s]",
+                        key, updateVersion, versionsStore, migrator));
+            }
+            oldVersion = initialVersion;
+            initialVersion = updateVersion;
+        }
+
+    }
+
+    private static class NextLoopMigrationException extends Exception {
+    }
+
+    public static class MigrationException extends RuntimeException {
 
         public MigrationException(@NonNull final String message) {
             super(message);

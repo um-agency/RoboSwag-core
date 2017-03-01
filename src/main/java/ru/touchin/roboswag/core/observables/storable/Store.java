@@ -22,6 +22,11 @@ package ru.touchin.roboswag.core.observables.storable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.lang.reflect.Type;
+
+import rx.Completable;
+import rx.Single;
+
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.
  * Interface that is providing access to abstract object which can store (e.g. in file, database, remote store)
@@ -37,41 +42,28 @@ public interface Store<TKey, TStoreObject> {
      *
      * @param key Key which is finding in store;
      * @return True if key have found in store.
-     * @throws StoreException Exception during getting access to store.
      */
-    boolean contains(@NonNull TKey key) throws StoreException;
+    @NonNull
+    Single<Boolean> contains(@NonNull TKey key);
 
     /**
      * Stores object to store with related key.
      *
-     * @param storeObjectClass Class of object to store;
-     * @param key              Key related to object;
-     * @param storeObject      Object to store;
-     * @throws StoreException Exception during getting access to store.
+     * @param storeObjectType Type of object to store;
+     * @param key             Key related to object;
+     * @param storeObject     Object to store;
      */
-    void storeObject(@NonNull Class<TStoreObject> storeObjectClass, @NonNull TKey key, @Nullable TStoreObject storeObject) throws StoreException;
+    @NonNull
+    Completable storeObject(@NonNull Type storeObjectType, @NonNull TKey key, @Nullable TStoreObject storeObject);
 
     /**
      * Loads object from store by key.
      *
-     * @param storeObjectClass Class of object to store;
-     * @param key              Key related to object;
+     * @param storeObjectType Type of object to store;
+     * @param key             Key related to object;
      * @return Object from store found by key;
-     * @throws StoreException Exception during getting access to store.
      */
-    @Nullable
-    TStoreObject loadObject(@NonNull Class<TStoreObject> storeObjectClass, @NonNull TKey key) throws StoreException;
-
-    class StoreException extends Exception {
-
-        public StoreException(@NonNull final String message) {
-            super(message);
-        }
-
-        public StoreException(@NonNull final String message, @NonNull final Throwable throwable) {
-            super(message, throwable);
-        }
-
-    }
+    @NonNull
+    Single<TStoreObject> loadObject(@NonNull Type storeObjectType, @NonNull TKey key);
 
 }
