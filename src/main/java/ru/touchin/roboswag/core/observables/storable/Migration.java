@@ -63,6 +63,21 @@ public class Migration<TKey> {
                         -> Single.error(new MigrationException(String.format("Can't get version of '%s' from %s", key, versionsStore), throwable)));
     }
 
+    @NonNull
+    private Single<Long> makeMigrationChain(@NonNull final TKey key, @NonNull final VersionUpdater versionUpdater) {
+        Single<Long> chain = Single.fromCallable(() -> versionUpdater.initialVersion);
+        for (final Migrator<TKey, ?, ?> migrator : migrators) {
+            chain = chain.flatMap(updatedVersion ->
+                    migrator.canMigrate(key, updatedVersion)
+                            .flatMap(canMigrate -> canMigrate
+                                    ? migrator.migrate(key, updatedVersion)
+                                    .doOnSuccess(newVersion
+                                            -> versionUpdater.updateVersion(newVersion, latestVersion, migrator))
+                                    : Single.just(updatedVersion)));
+        }
+        return chain;
+    }
+
     /**
      * Migrates some object by key to latest version.
      *
@@ -73,17 +88,7 @@ public class Migration<TKey> {
         return loadCurrentVersion(key)
                 .flatMap(currentVersion -> {
                     final VersionUpdater versionUpdater = new VersionUpdater<>(key, versionsStore, currentVersion);
-                    Single<Long> chain = Single.fromCallable(() -> versionUpdater.initialVersion);
-                    for (final Migrator<TKey, ?, ?> migrator : migrators) {
-                        chain = chain.flatMap(updatedVersion ->
-                                migrator.canMigrate(key, updatedVersion)
-                                        .flatMap(canMigrate -> canMigrate
-                                                ? migrator.migrate(key, updatedVersion)
-                                                .doOnSuccess(newVersion
-                                                        -> versionUpdater.updateVersion(newVersion, latestVersion, migrator))
-                                                : Single.just(updatedVersion)));
-                    }
-                    return chain
+                    return makeMigrationChain(key, versionUpdater)
                             .doOnSuccess(lastUpdatedVersion -> {
                                 if (lastUpdatedVersion < latestVersion) {
                                     throw OnErrorThrowable.from(new NextLoopMigrationException());

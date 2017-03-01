@@ -42,7 +42,7 @@ public class NonNullStorable<TKey, TObject, TStoreObject> extends Storable<TKey,
 
     @NonNull
     @Override
-    public TObject getSync() {
+    public TObject getSync() throws Throwable {
         final TObject result = super.getSync();
         if (result == null) {
             throw new ShouldNotHappenException();

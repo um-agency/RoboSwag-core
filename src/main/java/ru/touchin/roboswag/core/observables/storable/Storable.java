@@ -105,7 +105,8 @@ public class Storable<TKey, TObject, TStoreObject> {
         this.storeObjectType = storeObjectType;
         this.store = store;
         this.converter = converter;
-        final ObserveStrategy nonNullObserveStrategy = observeStrategy != null ? observeStrategy : getDefaultObserveStrategyFor(objectType, storeObjectType);
+        final ObserveStrategy nonNullObserveStrategy
+                = observeStrategy != null ? observeStrategy : getDefaultObserveStrategyFor(objectType, storeObjectType);
         scheduler = storeScheduler != null ? storeScheduler : Schedulers.from(Executors.newSingleThreadExecutor());
         storeValueObservable
                 = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue);
@@ -390,6 +391,8 @@ public class Storable<TKey, TObject, TStoreObject> {
                     sourceBuilder.migration, sourceBuilder.defaultValue, sourceBuilder.storeScheduler);
         }
 
+        @SuppressWarnings("CPD-START")
+        //CPD: it is same code as constructor of Storable
         private BuilderCore(@NonNull final TKey key,
                             @NonNull final Type objectType,
                             @NonNull final Type storeObjectType,
@@ -410,6 +413,7 @@ public class Storable<TKey, TObject, TStoreObject> {
             this.storeScheduler = storeScheduler;
         }
 
+        @SuppressWarnings("CPD-END")
         protected void setStoreSchedulerInternal(@Nullable final Scheduler storeScheduler) {
             this.storeScheduler = storeScheduler;
         }
@@ -505,11 +509,6 @@ public class Storable<TKey, TObject, TStoreObject> {
         @NonNull
         public Storable<TKey, TObject, TStoreObject> build() {
             return new Storable<>(this);
-        }
-
-        @Override
-        protected void setObserveStrategyInternal(@Nullable final ObserveStrategy observeStrategy) {
-            super.setObserveStrategyInternal(observeStrategy);
         }
 
     }
