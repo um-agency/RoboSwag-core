@@ -149,8 +149,8 @@ public class Storable<TKey, TObject, TStoreObject> {
                 .concatWith(newStoreValueEvent)
                 .map(storeObject -> returnDefaultValueIfNull(storeObject, defaultValue));
         return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE || observeStrategy == ObserveStrategy.CACHE_STORE_AND_ACTUAL_VALUE
-                ? result
-                : result.replay(1).refCount();
+                ? result.replay(1).refCount()
+                : result;
     }
 
     @NonNull
@@ -169,8 +169,8 @@ public class Storable<TKey, TObject, TStoreObject> {
                             }
                         }));
         return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE || observeStrategy == ObserveStrategy.CACHE_STORE_AND_ACTUAL_VALUE
-                ? result
-                : result.replay(1).refCount();
+                ? result.replay(1).refCount()
+                : result;
     }
 
     /**
