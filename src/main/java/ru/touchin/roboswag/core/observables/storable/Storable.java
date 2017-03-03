@@ -151,7 +151,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                 .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.io())
                 .concatWith(newStoreValueEvent)
                 .map(storeObject -> returnDefaultValueIfNull(storeObject, defaultValue));
-        return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE ? result : result.replay(1).refCount();
+        return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE ? result.replay(1).refCount() : result;
     }
 
     @NonNull
@@ -173,7 +173,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                 })
                 .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.computation());
 
-        return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE ? result : result.replay(1).refCount();
+        return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE ? result.replay(1).refCount() : result;
     }
 
     /**
