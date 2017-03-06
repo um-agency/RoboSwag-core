@@ -19,6 +19,7 @@
 
 package ru.touchin.roboswag.core.log;
 
+import android.annotation.SuppressLint;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -40,6 +41,7 @@ public class ConsoleLogProcessor extends LogProcessor {
     }
 
     @Override
+    @SuppressLint("LogConditional")
     public void processLogMessage(@NonNull final LcGroup group, @NonNull final LcLevel level,
                                   @NonNull final String tag, @NonNull final String message, @Nullable final Throwable throwable) {
         final String messageToLog = normalize(message + (throwable != null ? '\n' + Log.getStackTraceString(throwable) : ""));
