@@ -41,6 +41,8 @@ public class ConsoleLogProcessor extends LogProcessor {
     }
 
     @Override
+    @SuppressWarnings("WrongConstant")
+    //WrongConstant: level.getPriority() is not wrong constant!
     public void processLogMessage(@NonNull final LcGroup group, @NonNull final LcLevel level,
                                   @NonNull final String tag, @NonNull final String message, @Nullable final Throwable throwable) {
         final String messageToLog = normalize(message + (throwable != null ? '\n' + Log.getStackTraceString(throwable) : ""));
@@ -50,8 +52,9 @@ public class ConsoleLogProcessor extends LogProcessor {
             newline = newline != -1 ? newline : length;
             do {
                 final int end = Math.min(newline, i + MAX_LOG_LENGTH);
-                //noinspection WrongConstant
-                Log.println(level.getPriority(), tag, messageToLog.substring(i, end));
+                if (Log.isLoggable(tag, level.getPriority())) {
+                    Log.println(level.getPriority(), tag, messageToLog.substring(i, end));
+                }
                 i = end;
             }
             while (i < newline);

@@ -264,7 +264,9 @@ public final class Lc {
 
     public static void printStackTrace(@NonNull final String tag) {
         final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, STACK_TRACE_CODE_DEPTH, stackTrace.length)));
+        if (Log.isLoggable(tag, Log.DEBUG)) {
+            Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, STACK_TRACE_CODE_DEPTH, stackTrace.length)));
+        }
     }
 
     private Lc() {

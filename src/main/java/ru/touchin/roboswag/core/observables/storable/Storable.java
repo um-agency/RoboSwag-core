@@ -24,13 +24,12 @@ import android.support.annotation.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import ru.touchin.roboswag.core.log.LcGroup;
-import ru.touchin.roboswag.core.observables.ObservableResult;
-import ru.touchin.roboswag.core.observables.RxUtils;
+import ru.touchin.roboswag.core.observables.OnSubscribeRefCountWithCacheTime;
 import ru.touchin.roboswag.core.observables.storable.builders.NonNullStorableBuilder;
 import ru.touchin.roboswag.core.utils.ObjectUtils;
-import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
 import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
@@ -54,6 +53,8 @@ import rx.subjects.PublishSubject;
 public class Storable<TKey, TObject, TStoreObject> {
 
     public static final LcGroup STORABLE_LC_GROUP = new LcGroup("STORABLE");
+
+    private static final long DEFAULT_CACHE_TIME_MILLIS = TimeUnit.SECONDS.toMillis(5);
 
     @NonNull
     private static ObserveStrategy getDefaultObserveStrategyFor(@NonNull final Type objectType, @NonNull final Type storeObjectType) {
@@ -88,18 +89,21 @@ public class Storable<TKey, TObject, TStoreObject> {
     public Storable(@NonNull final BuilderCore<TKey, TObject, TStoreObject> builderCore) {
         this(builderCore.key, builderCore.objectType, builderCore.storeObjectType,
                 builderCore.store, builderCore.converter, builderCore.observeStrategy,
-                builderCore.migration, builderCore.defaultValue, builderCore.storeScheduler);
+                builderCore.migration, builderCore.defaultValue, builderCore.storeScheduler, builderCore.cacheTimeMillis);
     }
 
-    public Storable(@NonNull final TKey key,
-                    @NonNull final Type objectType,
-                    @NonNull final Type storeObjectType,
-                    @NonNull final Store<TKey, TStoreObject> store,
-                    @NonNull final Converter<TObject, TStoreObject> converter,
-                    @Nullable final ObserveStrategy observeStrategy,
-                    @Nullable final Migration<TKey> migration,
-                    @Nullable final TObject defaultValue,
-                    @Nullable final Scheduler storeScheduler) {
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    //ExcessiveParameterList: that's why we are using builder to create it
+    private Storable(@NonNull final TKey key,
+                     @NonNull final Type objectType,
+                     @NonNull final Type storeObjectType,
+                     @NonNull final Store<TKey, TStoreObject> store,
+                     @NonNull final Converter<TObject, TStoreObject> converter,
+                     @Nullable final ObserveStrategy observeStrategy,
+                     @Nullable final Migration<TKey> migration,
+                     @Nullable final TObject defaultValue,
+                     @Nullable final Scheduler storeScheduler,
+                     final long cacheTimeMillis) {
         this.key = key;
         this.objectType = objectType;
         this.storeObjectType = storeObjectType;
@@ -109,8 +113,8 @@ public class Storable<TKey, TObject, TStoreObject> {
                 = observeStrategy != null ? observeStrategy : getDefaultObserveStrategyFor(objectType, storeObjectType);
         scheduler = storeScheduler != null ? storeScheduler : Schedulers.from(Executors.newSingleThreadExecutor());
         storeValueObservable
-                = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue);
-        valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy);
+                = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue, cacheTimeMillis);
+        valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy, cacheTimeMillis);
     }
 
     @Nullable
@@ -134,7 +138,8 @@ public class Storable<TKey, TObject, TStoreObject> {
     @NonNull
     private Observable<TStoreObject> createStoreValueObservable(@NonNull final ObserveStrategy observeStrategy,
                                                                 @Nullable final Migration<TKey> migration,
-                                                                @Nullable final TObject defaultValue) {
+                                                                @Nullable final TObject defaultValue,
+                                                                final long cacheTimeMillis) {
         final Observable<TStoreObject> result = (migration != null
                 ? migration.migrateToLatestVersion(key).subscribeOn(scheduler)
                 : Completable.complete())
@@ -149,13 +154,14 @@ public class Storable<TKey, TObject, TStoreObject> {
                 .concatWith(newStoreValueEvent)
                 .map(storeObject -> returnDefaultValueIfNull(storeObject, defaultValue));
         return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE || observeStrategy == ObserveStrategy.CACHE_STORE_AND_ACTUAL_VALUE
-                ? result.replay(1).refCount()
+                ? Observable.create(new OnSubscribeRefCountWithCacheTime<>(result.replay(1), cacheTimeMillis, TimeUnit.MILLISECONDS))
                 : result;
     }
 
     @NonNull
     private Observable<TObject> createValueObservable(@NonNull final Observable<TStoreObject> storeValueObservable,
-                                                      @NonNull final ObserveStrategy observeStrategy) {
+                                                      @NonNull final ObserveStrategy observeStrategy,
+                                                      final long cacheTimeMillis) {
         final Observable<TObject> result = storeValueObservable
                 .switchMap(storeObject -> Observable
                         .fromCallable(() -> converter.toObject(objectType, storeObjectType, storeObject))
@@ -169,7 +175,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                             }
                         }));
         return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE || observeStrategy == ObserveStrategy.CACHE_STORE_AND_ACTUAL_VALUE
-                ? result.replay(1).refCount()
+                ? Observable.create(new OnSubscribeRefCountWithCacheTime<>(result.replay(1), cacheTimeMillis, TimeUnit.MILLISECONDS))
                 : result;
     }
 
@@ -223,28 +229,24 @@ public class Storable<TKey, TObject, TStoreObject> {
         return converter;
     }
 
-    /**
-     * Creates observable which is async setting value to store.
-     * NOTE: It could emit ONLY completed and errors events. It is not providing onNext event! //TODO: it's Completable :(
-     *
-     * @param newValue Value to set;
-     * @return Observable of setting process.
-     */
     @NonNull
-    public Observable<?> set(@Nullable final TObject newValue) {
-        return storeValueObservable
-                .first()
+    private Completable internalSet(@Nullable final TObject newValue, final boolean checkForEqualityBeforeSet) {
+        return (checkForEqualityBeforeSet ? storeValueObservable.first() : Observable.just(null))
                 .switchMap(oldStoreValue -> Observable
                         .fromCallable(() -> converter.toStoreObject(objectType, storeObjectType, newValue))
                         .subscribeOn(scheduler)
                         .switchMap(newStoreValue -> {
-                            if (ObjectUtils.equals(newStoreValue, oldStoreValue)) {
+                            if (checkForEqualityBeforeSet && ObjectUtils.equals(newStoreValue, oldStoreValue)) {
                                 return Observable.empty();
                             }
                             return store.storeObject(storeObjectType, key, newStoreValue)
                                     .doOnCompleted(() -> {
                                         newStoreValueEvent.onNext(newStoreValue);
-                                        STORABLE_LC_GROUP.i("Value of '%s' changed from '%s' to '%s'", key, oldStoreValue, newStoreValue);
+                                        if (checkForEqualityBeforeSet) {
+                                            STORABLE_LC_GROUP.i("Value of '%s' changed from '%s' to '%s'", key, oldStoreValue, newStoreValue);
+                                        } else {
+                                            STORABLE_LC_GROUP.i("Value of '%s' force changed to '%s'", key, newStoreValue);
+                                        }
                                     })
                                     .toObservable();
                         }))
@@ -255,23 +257,48 @@ public class Storable<TKey, TObject, TStoreObject> {
                         STORABLE_LC_GROUP.w(throwable, "Exception while trying to store value of '%s' from store %s by %s",
                                 key, newValue, store, converter);
                     }
-                });
+                })
+                .toCompletable();
+    }
+
+    /**
+     * Creates observable which is async setting value to store.
+     * It is not checking if stored value equals new value.
+     * In result it will be faster to not get value from store and compare but it will emit item to {@link #observe()} subscribers.
+     * NOTE: It could emit ONLY completed and errors events. It is not providing onNext event! //TODO: it's Completable :(
+     *
+     * @param newValue Value to set;
+     * @return Observable of setting process.
+     */
+    @NonNull
+    public Observable<?> forceSet(@Nullable final TObject newValue) {
+        return internalSet(newValue, false).toObservable();
+    }
+
+    /**
+     * Creates observable which is async setting value to store.
+     * It is checking if stored value equals new value.
+     * In result it will take time to get value from store and compare
+     * but it won't emit item to {@link #observe()} subscribers if stored value equals new value.
+     * NOTE: It could emit ONLY completed and errors events. It is not providing onNext event! //TODO: it's Completable :(
+     *
+     * @param newValue Value to set;
+     * @return Observable of setting process.
+     */
+    @NonNull
+    public Observable<?> set(@Nullable final TObject newValue) {
+        return internalSet(newValue, true).toObservable();
     }
 
     /**
      * Sets value synchronously. You should NOT use this method normally. Use {@link #set(Object)} asynchronously instead.
      *
      * @param newValue Value to set;
-     * @throws Converter.ConversionException Throws if {@link Converter} threw exception during conversion;
-     * @throws Migration.MigrationException  Throws if {@link Migration} threw exception during migration.
      */
     @Deprecated
     //deprecation: it should be used for debug only and in very rare cases.
-    public void setSync(@Nullable final TObject newValue) throws Throwable {
-        final ObservableResult<?> setResult = RxUtils.executeSync(set(newValue));
-        if (setResult.getError() != null) {
-            throw setResult.getError();
-        }
+    public void setSync(@Nullable final TObject newValue) {
+        set(newValue).toBlocking().subscribe();
     }
 
     /**
@@ -300,21 +327,12 @@ public class Storable<TKey, TObject, TStoreObject> {
      * Gets value synchronously. You should NOT use this method normally. Use {@link #get()} or {@link #observe()} asynchronously instead.
      *
      * @return Returns value;
-     * @throws Converter.ConversionException Throws if {@link Converter} threw exception during conversion;
-     * @throws Migration.MigrationException  Throws if {@link Migration} threw exception during migration.
      */
     @Deprecated
     //deprecation: it should be used for debug only and in very rare cases.
     @Nullable
-    public TObject getSync() throws Throwable {
-        final ObservableResult<TObject> getResult = RxUtils.executeSync(get());
-        if (getResult.getError() != null) {
-            throw getResult.getError();
-        }
-        if (getResult.getItems().size() != 1) {
-            throw new ShouldNotHappenException();
-        }
-        return getResult.getItems().get(0);
+    public TObject getSync() {
+        return get().toBlocking().first();
     }
 
     /**
@@ -376,23 +394,25 @@ public class Storable<TKey, TObject, TStoreObject> {
         private TObject defaultValue;
         @Nullable
         private Scheduler storeScheduler;
+        private long cacheTimeMillis;
 
         protected BuilderCore(@NonNull final TKey key,
                               @NonNull final Type objectType,
                               @NonNull final Type storeObjectType,
                               @NonNull final Store<TKey, TStoreObject> store,
                               @NonNull final Converter<TObject, TStoreObject> converter) {
-            this(key, objectType, storeObjectType, store, converter, null, null, null, null);
+            this(key, objectType, storeObjectType, store, converter, null, null, null, null, DEFAULT_CACHE_TIME_MILLIS);
         }
 
         protected BuilderCore(@NonNull final BuilderCore<TKey, TObject, TStoreObject> sourceBuilder) {
             this(sourceBuilder.key, sourceBuilder.objectType, sourceBuilder.storeObjectType,
                     sourceBuilder.store, sourceBuilder.converter, sourceBuilder.observeStrategy,
-                    sourceBuilder.migration, sourceBuilder.defaultValue, sourceBuilder.storeScheduler);
+                    sourceBuilder.migration, sourceBuilder.defaultValue, sourceBuilder.storeScheduler, sourceBuilder.cacheTimeMillis);
         }
 
-        @SuppressWarnings("CPD-START")
+        @SuppressWarnings({"PMD.ExcessiveParameterList", "CPD-START"})
         //CPD: it is same code as constructor of Storable
+        //ExcessiveParameterList: that's why we are using builder to create it
         private BuilderCore(@NonNull final TKey key,
                             @NonNull final Type objectType,
                             @NonNull final Type storeObjectType,
@@ -401,7 +421,8 @@ public class Storable<TKey, TObject, TStoreObject> {
                             @Nullable final ObserveStrategy observeStrategy,
                             @Nullable final Migration<TKey> migration,
                             @Nullable final TObject defaultValue,
-                            @Nullable final Scheduler storeScheduler) {
+                            @Nullable final Scheduler storeScheduler,
+                            final long cacheTimeMillis) {
             this.key = key;
             this.objectType = objectType;
             this.storeObjectType = storeObjectType;
@@ -411,6 +432,7 @@ public class Storable<TKey, TObject, TStoreObject> {
             this.migration = migration;
             this.defaultValue = defaultValue;
             this.storeScheduler = storeScheduler;
+            this.cacheTimeMillis = cacheTimeMillis;
         }
 
         @SuppressWarnings("CPD-END")
@@ -424,6 +446,10 @@ public class Storable<TKey, TObject, TStoreObject> {
 
         protected void setMigrationInternal(@NonNull final Migration<TKey> migration) {
             this.migration = migration;
+        }
+
+        protected void setCacheTimeInternal(final long cacheTime, @NonNull final TimeUnit timeUnit) {
+            this.cacheTimeMillis = timeUnit.toMillis(cacheTime);
         }
 
         @Nullable
@@ -475,6 +501,20 @@ public class Storable<TKey, TObject, TStoreObject> {
         @NonNull
         public Builder<TKey, TObject, TStoreObject> setObserveStrategy(@Nullable final ObserveStrategy observeStrategy) {
             setObserveStrategyInternal(observeStrategy);
+            return this;
+        }
+
+        /**
+         * Sets cache time for while value that cached by {@link #setObserveStrategy(ObserveStrategy)} will be in memory after everyone unsubscribe.
+         * It is important for example for cases when user switches between screens and hide/open app very fast.
+         *
+         * @param cacheTime Cache time value;
+         * @param timeUnit  Cache time units.
+         * @return Builder that allows to specify other fields.
+         */
+        @NonNull
+        public Builder<TKey, TObject, TStoreObject> setCacheTime(final long cacheTime, @NonNull final TimeUnit timeUnit) {
+            setCacheTimeInternal(cacheTime, timeUnit);
             return this;
         }
 

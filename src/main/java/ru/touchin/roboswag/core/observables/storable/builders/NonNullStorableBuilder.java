@@ -20,11 +20,15 @@
 package ru.touchin.roboswag.core.observables.storable.builders;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
+import java.util.concurrent.TimeUnit;
 
 import ru.touchin.roboswag.core.observables.storable.Migration;
 import ru.touchin.roboswag.core.observables.storable.Storable;
 import ru.touchin.roboswag.core.observables.storable.concrete.NonNullStorable;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
+import rx.Scheduler;
 
 /**
  * Created by Gavriil Sitnikov on 15/05/2016.
@@ -40,6 +44,45 @@ public class NonNullStorableBuilder<TKey, TObject, TStoreObject> extends Storabl
                                   @NonNull final TObject defaultValue) {
         super(sourceBuilder);
         setDefaultValueInternal(defaultValue);
+    }
+
+    /**
+     * Sets specific {@link Scheduler} to store/load/convert values on it.
+     *
+     * @param storeScheduler Scheduler;
+     * @return Builder that allows to specify other fields.
+     */
+    @NonNull
+    public NonNullStorableBuilder<TKey, TObject, TStoreObject> setStoreScheduler(@Nullable final Scheduler storeScheduler) {
+        setStoreSchedulerInternal(storeScheduler);
+        return this;
+    }
+
+    /**
+     * Sets specific {@link Storable.ObserveStrategy} to cache value in memory in specific way.
+     *
+     * @param observeStrategy ObserveStrategy;
+     * @return Builder that allows to specify other fields.
+     */
+    @NonNull
+    public NonNullStorableBuilder<TKey, TObject, TStoreObject> setObserveStrategy(@Nullable final Storable.ObserveStrategy observeStrategy) {
+        setObserveStrategyInternal(observeStrategy);
+        return this;
+    }
+
+    /**
+     * Sets cache time for while value that cached by {@link #setObserveStrategy(Storable.ObserveStrategy)}
+     * will be in memory after everyone unsubscribe.
+     * It is important for example for cases when user switches between screens and hide/open app very fast.
+     *
+     * @param cacheTime Cache time value;
+     * @param timeUnit  Cache time units.
+     * @return Builder that allows to specify other fields.
+     */
+    @NonNull
+    public NonNullStorableBuilder<TKey, TObject, TStoreObject> setCacheTime(final long cacheTime, @NonNull final TimeUnit timeUnit) {
+        setCacheTimeInternal(cacheTime, timeUnit);
+        return this;
     }
 
     /**
