@@ -22,8 +22,11 @@ package ru.touchin.roboswag.core.observables.storable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.util.concurrent.TimeUnit;
+
 import ru.touchin.roboswag.core.log.LcGroup;
 import ru.touchin.roboswag.core.observables.ObservableResult;
+import ru.touchin.roboswag.core.observables.OnSubscribeRefCountWithCacheTime;
 import ru.touchin.roboswag.core.observables.RxUtils;
 import ru.touchin.roboswag.core.observables.storable.builders.MigratableStorableBuilder;
 import ru.touchin.roboswag.core.observables.storable.builders.NonNullStorableBuilder;
@@ -53,6 +56,8 @@ import rx.subjects.PublishSubject;
 public class Storable<TKey, TObject, TStoreObject> {
 
     public static final LcGroup STORABLE_LC_GROUP = new LcGroup("STORABLE");
+
+    private static final long CACHE_TIME = TimeUnit.SECONDS.toMillis(5);
 
     @NonNull
     private final TKey key;
@@ -151,7 +156,9 @@ public class Storable<TKey, TObject, TStoreObject> {
                 .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.io())
                 .concatWith(newStoreValueEvent)
                 .map(storeObject -> returnDefaultValueIfNull(storeObject, defaultValue));
-        return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE ? result.replay(1).refCount() : result;
+        return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE
+                ? Observable.create(new OnSubscribeRefCountWithCacheTime<>(result.replay(1), CACHE_TIME, TimeUnit.MILLISECONDS))
+                : result;
     }
 
     @NonNull
@@ -173,7 +180,9 @@ public class Storable<TKey, TObject, TStoreObject> {
                 })
                 .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.computation());
 
-        return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE ? result.replay(1).refCount() : result;
+        return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE
+                ? Observable.create(new OnSubscribeRefCountWithCacheTime<>(result.replay(1), CACHE_TIME, TimeUnit.MILLISECONDS))
+                : result;
     }
 
     /**
@@ -226,6 +235,49 @@ public class Storable<TKey, TObject, TStoreObject> {
         return converter;
     }
 
+    @NonNull
+    private Observable<?> internalSet(@Nullable final TObject newValue, final boolean checkForEqualityBeforeSet) {
+        return (checkForEqualityBeforeSet ? valueObservable.first() : Observable.just(null))
+                .switchMap(value -> {
+                    if (checkForEqualityBeforeSet && ObjectUtils.equals(value, newValue)) {
+                        return Observable.empty();
+                    }
+                    return Observable
+                            .<TStoreObject>create(subscriber -> {
+                                try {
+                                    final TStoreObject storeObject = converter.toStoreObject(objectClass, storeObjectClass, newValue);
+                                    store.storeObject(storeObjectClass, key, storeObject);
+                                    newStoreValueEvent.onNext(storeObject);
+                                    STORABLE_LC_GROUP.i("Value of '%s' changed from '%s' to '%s'", key, value, newValue);
+                                    subscriber.onCompleted();
+                                } catch (final Converter.ConversionException conversionException) {
+                                    STORABLE_LC_GROUP.w(conversionException, "Exception while converting value of '%s' from '%s' to store object",
+                                            key, newValue, store);
+                                    subscriber.onError(conversionException);
+                                } catch (final Store.StoreException storeException) {
+                                    STORABLE_LC_GROUP.w(storeException, "Exception while trying to store value of '%s' to store %s", key, store);
+                                    subscriber.onError(storeException);
+                                } catch (final RuntimeException throwable) {
+                                    STORABLE_LC_GROUP.assertion(throwable);
+                                }
+                            });
+                });
+    }
+
+    /**
+     * Creates observable which is async setting value to store.
+     * It is not checking if stored value equals new value.
+     * In result it will be faster to not get value from store and compare but it will emit item to {@link #observe()} subscribers.
+     * NOTE: It could emit ONLY completed and errors events. It is not providing onNext event!
+     *
+     * @param newValue Value to set;
+     * @return Observable of setting process.
+     */
+    @NonNull
+    public Observable<?> forceSet(@Nullable final TObject newValue) {
+        return internalSet(newValue, false);
+    }
+
     /**
      * Creates observable which is async setting value to store.
      * NOTE: It could emit ONLY completed and errors events. It is not providing onNext event!
@@ -236,29 +288,7 @@ public class Storable<TKey, TObject, TStoreObject> {
      */
     @NonNull
     public Observable<?> set(@Nullable final TObject newValue) {
-        return valueObservable
-                .first()
-                .switchMap(value -> ObjectUtils.equals(value, newValue)
-                        ? Observable.empty()
-                        : Observable
-                        .<TStoreObject>create(subscriber -> {
-                            try {
-                                final TStoreObject storeObject = converter.toStoreObject(objectClass, storeObjectClass, newValue);
-                                store.storeObject(storeObjectClass, key, storeObject);
-                                newStoreValueEvent.onNext(storeObject);
-                                STORABLE_LC_GROUP.i("Value of '%s' changed from '%s' to '%s'", key, value, newValue);
-                                subscriber.onCompleted();
-                            } catch (final Converter.ConversionException conversionException) {
-                                STORABLE_LC_GROUP.w(conversionException, "Exception while converting value of '%s' from '%s' to store object",
-                                        key, newValue, store);
-                                subscriber.onError(conversionException);
-                            } catch (final Store.StoreException storeException) {
-                                STORABLE_LC_GROUP.w(storeException, "Exception while trying to store value of '%s' to store %s", key, store);
-                                subscriber.onError(storeException);
-                            } catch (final RuntimeException throwable) {
-                                STORABLE_LC_GROUP.assertion(throwable);
-                            }
-                        }));
+        return internalSet(newValue, true);
     }
 
     /**

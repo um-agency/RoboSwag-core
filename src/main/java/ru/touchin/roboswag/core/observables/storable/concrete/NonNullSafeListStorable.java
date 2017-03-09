@@ -72,6 +72,14 @@ public class NonNullSafeListStorable<TKey, TItemObject, TStoreObject> {
     }
 
     /**
+     * Wraps {@link Storable#forceSet(Object)} (Object)}.
+     */
+    @NonNull
+    public Observable<?> forseSet(@Nullable final List<TItemObject> list) {
+        return storable.forceSet(list);
+    }
+
+    /**
      * Wraps {@link Storable#setCalm(Object)}.
      */
     public void setCalm(@Nullable final List<TItemObject> list) {
