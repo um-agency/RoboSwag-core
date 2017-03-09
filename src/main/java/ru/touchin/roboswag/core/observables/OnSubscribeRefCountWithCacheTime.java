@@ -132,9 +132,7 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
     }
 
     private void doSubscribe(@NonNull final Subscriber<? super T> subscriber, @NonNull final CompositeSubscription currentBase) {
-        // handle unsubscribing from the base subscription
         subscriber.add(disconnect(currentBase));
-
         source.unsafeSubscribe(new Subscriber<T>(subscriber) {
             @Override
             public void onError(@NonNull final Throwable throwable) {
@@ -159,6 +157,10 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
                 lock.lock();
                 try {
                     if (baseSubscription == currentBase) {
+                        if (worker != null) {
+                            worker.unsubscribe();
+                            worker = null;
+                        }
                         baseSubscription.unsubscribe();
                         baseSubscription = new CompositeSubscription();
                         subscriptionCount.set(0);

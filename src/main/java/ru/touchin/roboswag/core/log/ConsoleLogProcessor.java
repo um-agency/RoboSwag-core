@@ -52,9 +52,7 @@ public class ConsoleLogProcessor extends LogProcessor {
             newline = newline != -1 ? newline : length;
             do {
                 final int end = Math.min(newline, i + MAX_LOG_LENGTH);
-                if (Log.isLoggable(tag, level.getPriority())) {
-                    Log.println(level.getPriority(), tag, messageToLog.substring(i, end));
-                }
+                Log.println(level.getPriority(), tag, messageToLog.substring(i, end));
                 i = end;
             }
             while (i < newline);

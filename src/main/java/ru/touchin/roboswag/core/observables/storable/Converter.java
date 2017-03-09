@@ -36,27 +36,27 @@ public interface Converter<TObject, TStoreObject> {
     /**
      * Converts specific object of objectType to object of storeObjectClass allowed to store.
      *
-     * @param objectClass      Type of object;
-     * @param storeObjectClass Type of store object allowed to store;
+     * @param objectType      Type of object;
+     * @param storeObjectType Type of store object allowed to store;
      * @param object           Object to be converted to store object;
      * @return Object that is allowed to store into specific {@link Store};
      * @throws ConversionException Exception during conversion. Usually it indicates illegal state.
      */
     @Nullable
-    TStoreObject toStoreObject(@NonNull Type objectClass, @NonNull Type storeObjectClass, @Nullable TObject object)
+    TStoreObject toStoreObject(@NonNull Type objectType, @NonNull Type storeObjectType, @Nullable TObject object)
             throws ConversionException;
 
     /**
      * Converts specific store object of storeObjectClass to object of objectType.
      *
-     * @param objectClass      Type of object;
-     * @param storeObjectClass Type of store object allowed to store;
+     * @param objectType      Type of object;
+     * @param storeObjectType Type of store object allowed to store;
      * @param storeObject      Object from specific {@link Store};
      * @return Object converted from store object;
      * @throws ConversionException Exception during conversion. Usually it indicates illegal state.
      */
     @Nullable
-    TObject toObject(@NonNull Type objectClass, @NonNull Type storeObjectClass, @Nullable TStoreObject storeObject)
+    TObject toObject(@NonNull Type objectType, @NonNull Type storeObjectType, @Nullable TStoreObject storeObject)
             throws ConversionException;
 
     class ConversionException extends Exception {

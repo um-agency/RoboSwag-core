@@ -66,7 +66,7 @@ public abstract class Migrator<TKey, TOldStoreObject, TNewStoreObject> {
     }
 
     /**
-     * Observable that migrates object with specific key from some version to migrator's version.
+     * Single that migrates object with specific key from some version to migrator's version.
      *
      * @param key     Key of object to migrate;
      * @param version Current version of object;
@@ -80,7 +80,7 @@ public abstract class Migrator<TKey, TOldStoreObject, TNewStoreObject> {
     }
 
     /**
-     * Observable that represents internal migration logic specified by implementation.
+     * Single that represents internal migration logic specified by implementation.
      *
      * @param key      Key of object to migrate;
      * @param version  Current version of object;
