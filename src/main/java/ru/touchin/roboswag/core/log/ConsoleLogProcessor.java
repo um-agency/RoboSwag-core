@@ -41,8 +41,8 @@ public class ConsoleLogProcessor extends LogProcessor {
     }
 
     @Override
-    @SuppressWarnings("WrongConstant")
-    //WrongConstant: level.getPriority() is not wrong constant!
+    @SuppressWarnings({"WrongConstant", "LogConditional"})
+    //WrongConstant, LogConditional: level.getPriority() is not wrong constant!
     public void processLogMessage(@NonNull final LcGroup group, @NonNull final LcLevel level,
                                   @NonNull final String tag, @NonNull final String message, @Nullable final Throwable throwable) {
         final String messageToLog = normalize(message + (throwable != null ? '\n' + Log.getStackTraceString(throwable) : ""));
