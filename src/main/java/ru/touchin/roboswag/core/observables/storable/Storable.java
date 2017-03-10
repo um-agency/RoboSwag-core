@@ -23,11 +23,9 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import ru.touchin.roboswag.core.log.LcGroup;
 import ru.touchin.roboswag.core.observables.ObservableResult;
-import ru.touchin.roboswag.core.observables.OnSubscribeRefCountWithCacheTime;
 import ru.touchin.roboswag.core.observables.RxUtils;
 import ru.touchin.roboswag.core.observables.storable.builders.MigratableStorableBuilder;
 import ru.touchin.roboswag.core.observables.storable.builders.NonNullStorableBuilder;
@@ -57,8 +55,6 @@ import rx.subjects.PublishSubject;
 public class Storable<TKey, TObject, TStoreObject> {
 
     public static final LcGroup STORABLE_LC_GROUP = new LcGroup("STORABLE");
-
-    private static final long CACHE_TIME = TimeUnit.SECONDS.toMillis(5);
 
     @NonNull
     private final TKey key;
@@ -159,9 +155,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                 .subscribeOn(storeScheduler)
                 .concatWith(newStoreValueEvent)
                 .map(storeObject -> returnDefaultValueIfNull(storeObject, defaultValue));
-        return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE
-                ? Observable.create(new OnSubscribeRefCountWithCacheTime<>(result.replay(1), CACHE_TIME, TimeUnit.MILLISECONDS))
-                : result;
+        return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE ? result.replay(1).refCount() : result;
     }
 
     @NonNull
@@ -182,9 +176,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                 })
                 .subscribeOn(storeScheduler);
 
-        return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE
-                ? Observable.create(new OnSubscribeRefCountWithCacheTime<>(result.replay(1), CACHE_TIME, TimeUnit.MILLISECONDS))
-                : result;
+        return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE ? result.replay(1).refCount() : result;
     }
 
     /**
