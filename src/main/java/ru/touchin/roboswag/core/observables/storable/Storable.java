@@ -22,6 +22,7 @@ package ru.touchin.roboswag.core.observables.storable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import ru.touchin.roboswag.core.log.LcGroup;
@@ -73,6 +74,8 @@ public class Storable<TKey, TObject, TStoreObject> {
     private final PublishSubject<TStoreObject> newStoreValueEvent = PublishSubject.create();
     @NonNull
     private final Observable<TObject> valueObservable;
+    @NonNull
+    private final Scheduler storeScheduler;
 
     public Storable(@NonNull final BuilderCore<TKey, TObject, TStoreObject> builderCore) {
         this(builderCore.key, builderCore.objectClass, builderCore.storeObjectClass,
@@ -98,9 +101,10 @@ public class Storable<TKey, TObject, TStoreObject> {
         this.store = store;
         this.converter = converter;
         final ObserveStrategy nonNullObserveStrategy = observeStrategy != null ? observeStrategy : getDefaultGetStrategy();
+        this.storeScheduler = storeScheduler != null ? storeScheduler : Schedulers.from(Executors.newSingleThreadExecutor());
         final Observable<TStoreObject> storeValueObservable
-                = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue, storeScheduler);
-        valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy, storeScheduler);
+                = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue);
+        valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy);
     }
 
     @NonNull
@@ -133,8 +137,7 @@ public class Storable<TKey, TObject, TStoreObject> {
     @NonNull
     private Observable<TStoreObject> createStoreValueObservable(@NonNull final ObserveStrategy observeStrategy,
                                                                 @Nullable final Migration<TKey> migration,
-                                                                @Nullable final TObject defaultValue,
-                                                                @Nullable final Scheduler storeScheduler) {
+                                                                @Nullable final TObject defaultValue) {
         final Observable<TStoreObject> result = Observable
                 .<TStoreObject>create(subscriber -> {
                     try {
@@ -153,7 +156,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                         STORABLE_LC_GROUP.assertion(throwable);
                     }
                 })
-                .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.io())
+                .subscribeOn(storeScheduler)
                 .concatWith(newStoreValueEvent)
                 .map(storeObject -> returnDefaultValueIfNull(storeObject, defaultValue));
         return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE
@@ -163,8 +166,7 @@ public class Storable<TKey, TObject, TStoreObject> {
 
     @NonNull
     private Observable<TObject> createValueObservable(@NonNull final Observable<TStoreObject> storeValueObservable,
-                                                      @NonNull final ObserveStrategy observeStrategy,
-                                                      @Nullable final Scheduler storeScheduler) {
+                                                      @NonNull final ObserveStrategy observeStrategy) {
         final Observable<TObject> result = storeValueObservable
                 .map(storeObject -> {
                     try {
@@ -178,7 +180,7 @@ public class Storable<TKey, TObject, TStoreObject> {
                         throw OnErrorThrowable.from(throwable);
                     }
                 })
-                .subscribeOn(storeScheduler != null ? storeScheduler : Schedulers.computation());
+                .subscribeOn(storeScheduler);
 
         return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE
                 ? Observable.create(new OnSubscribeRefCountWithCacheTime<>(result.replay(1), CACHE_TIME, TimeUnit.MILLISECONDS))
