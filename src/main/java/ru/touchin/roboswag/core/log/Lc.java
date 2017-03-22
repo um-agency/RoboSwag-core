@@ -252,8 +252,8 @@ public final class Lc {
     @NonNull
     public static String getCodePoint(@Nullable final Object caller, final int stackShift) {
         final StackTraceElement traceElement = Thread.currentThread().getStackTrace()[STACK_TRACE_CODE_DEPTH + stackShift];
-        return (caller != null ? caller.getClass().getName() + '(' + caller.hashCode() + ") at " : "")
-                + traceElement.getFileName() + ':' + traceElement.getMethodName() + ':' + traceElement.getLineNumber();
+        return traceElement.getMethodName() + '(' + traceElement.getFileName() + ':' + traceElement.getLineNumber() + ')'
+                + (caller != null ? " of object " + caller.getClass().getSimpleName() + '(' + Integer.toHexString(caller.hashCode()) + ')' : "");
     }
 
     /**
