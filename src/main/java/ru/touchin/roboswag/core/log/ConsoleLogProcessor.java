@@ -19,7 +19,6 @@
 
 package ru.touchin.roboswag.core.log;
 
-import android.annotation.SuppressLint;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -36,12 +35,14 @@ public class ConsoleLogProcessor extends LogProcessor {
         super(lclevel);
     }
 
+    @NonNull
     private String normalize(@NonNull final String message) {
         return message.replace("\r\n", "\n").replace("\0", "");
     }
 
     @Override
-    @SuppressLint("LogConditional")
+    @SuppressWarnings({"WrongConstant", "LogConditional"})
+    //WrongConstant, LogConditional: level.getPriority() is not wrong constant!
     public void processLogMessage(@NonNull final LcGroup group, @NonNull final LcLevel level,
                                   @NonNull final String tag, @NonNull final String message, @Nullable final Throwable throwable) {
         final String messageToLog = normalize(message + (throwable != null ? '\n' + Log.getStackTraceString(throwable) : ""));
@@ -51,7 +52,6 @@ public class ConsoleLogProcessor extends LogProcessor {
             newline = newline != -1 ? newline : length;
             do {
                 final int end = Math.min(newline, i + MAX_LOG_LENGTH);
-                //noinspection WrongConstant
                 Log.println(level.getPriority(), tag, messageToLog.substring(i, end));
                 i = end;
             }

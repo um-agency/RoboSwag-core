@@ -20,6 +20,7 @@
 package ru.touchin.roboswag.core.utils.pairs;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.Serializable;
 
@@ -65,7 +66,7 @@ public class NonNullPair<TFirst, TSecond> implements Serializable {
     }
 
     @Override
-    public boolean equals(final Object object) {
+    public boolean equals(@Nullable final Object object) {
         if (this == object) {
             return true;
         }

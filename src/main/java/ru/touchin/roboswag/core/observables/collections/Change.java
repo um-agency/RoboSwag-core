@@ -103,6 +103,7 @@ public class Change<TItem> {
         return count;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return type + " change of " + start + ":" + count;

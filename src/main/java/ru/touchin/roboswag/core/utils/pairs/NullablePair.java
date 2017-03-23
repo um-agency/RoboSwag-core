@@ -70,17 +70,17 @@ public class NullablePair<TFirst, TSecond> implements Serializable { //todo: mb 
     }
 
     @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
+    public boolean equals(@Nullable final Object object) {
+        if (this == object) {
             return true;
         }
-        if (obj == null || getClass() != obj.getClass()) {
+        if (object == null || getClass() != object.getClass()) {
             return false;
         }
 
-        final NullablePair<?, ?> that = (NullablePair<?, ?>) obj;
+        final NullablePair<?, ?> that = (NullablePair<?, ?>) object;
 
-        return ObjectUtils.equals(first, that.getFirst()) && ObjectUtils.equals(second, that.getSecond());
+        return ObjectUtils.equals(first, that.first) && ObjectUtils.equals(second, that.second);
     }
 
     @Override

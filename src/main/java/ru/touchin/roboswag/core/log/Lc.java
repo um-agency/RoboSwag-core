@@ -46,11 +46,11 @@ public final class Lc {
 
     public static final LcGroup GENERAL_LC_GROUP = new LcGroup("GENERAL");
 
+    public static final int STACK_TRACE_CODE_DEPTH;
+
     private static boolean crashOnAssertions = true;
     @NonNull
     private static LogProcessor logProcessor = new ConsoleLogProcessor(LcLevel.ERROR);
-
-    public static final int STACK_TRACE_CODE_DEPTH;
 
     static {
         final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -165,7 +165,7 @@ public final class Lc {
      * @param message Message or format of message to log;
      * @param args    Arguments of formatted message.
      */
-    public static void e(@NonNull final String message, final Object... args) {
+    public static void e(@NonNull final String message, @NonNull final Object... args) {
         GENERAL_LC_GROUP.e(message, args);
     }
 
@@ -176,7 +176,7 @@ public final class Lc {
      * @param message   Message or format of message to log;
      * @param args      Arguments of formatted message.
      */
-    public static void e(@NonNull final Throwable throwable, @NonNull final String message, final Object... args) {
+    public static void e(@NonNull final Throwable throwable, @NonNull final String message, @NonNull final Object... args) {
         GENERAL_LC_GROUP.e(throwable, message, args);
     }
 
@@ -253,8 +253,8 @@ public final class Lc {
     @NonNull
     public static String getCodePoint(@Nullable final Object caller, final int stackShift) {
         final StackTraceElement traceElement = Thread.currentThread().getStackTrace()[STACK_TRACE_CODE_DEPTH + stackShift];
-        return (caller != null ? caller.getClass().getName() + '(' + caller.hashCode() + ") at " : "")
-                + traceElement.getFileName() + ':' + traceElement.getMethodName() + ':' + traceElement.getLineNumber();
+        return traceElement.getMethodName() + '(' + traceElement.getFileName() + ':' + traceElement.getLineNumber() + ')'
+                + (caller != null ? " of object " + caller.getClass().getSimpleName() + '(' + Integer.toHexString(caller.hashCode()) + ')' : "");
     }
 
     /**
@@ -266,7 +266,9 @@ public final class Lc {
     @SuppressLint("LogConditional")
     public static void printStackTrace(@NonNull final String tag) {
         final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, STACK_TRACE_CODE_DEPTH, stackTrace.length)));
+        if (Log.isLoggable(tag, Log.DEBUG)) {
+            Log.d(tag, TextUtils.join("\n", Arrays.copyOfRange(stackTrace, STACK_TRACE_CODE_DEPTH, stackTrace.length)));
+        }
     }
 
     private Lc() {

@@ -27,6 +27,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
+import ru.touchin.roboswag.core.observables.collections.ObservableCollection;
+
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.
  * Some utilities related to objects.
@@ -102,11 +104,12 @@ public final class ObjectUtils {
     public static boolean isMapsEquals(@Nullable final Map<?, ?> map1, @Nullable final Map<?, ?> map2) {
         return map1 == map2 || !(map1 == null || map2 == null)
                 && map1.size() == map2.size()
-                && map1.entrySet().containsAll(map2.entrySet());
+                && map1.entrySet().containsAll(map2.entrySet())
+                && map2.entrySet().containsAll(map1.entrySet());
     }
 
     @SuppressWarnings("PMD.AvoidUsingShortType")
-    private static boolean isArraysEquals(@NonNull final Object object1, @Nullable final Object object2, final Class<?> elementType) {
+    private static boolean isArraysEquals(@NonNull final Object object1, @Nullable final Object object2, @NonNull final Class<?> elementType) {
         if (object1 instanceof Object[]) {
             return Arrays.deepEquals((Object[]) object1, (Object[]) object2);
         } else if (elementType == int.class) {
@@ -148,6 +151,36 @@ public final class ObjectUtils {
         return objectClass.isPrimitive() || objectClass.getSuperclass() == Number.class
                 || objectClass.isEnum() || objectClass == Boolean.class
                 || objectClass == String.class || objectClass == Object.class;
+    }
+
+    /**
+     * Returns true if collection is null or empty.
+     *
+     * @param collection Collection to check;
+     * @return True if collection is null or empty.
+     */
+    public static boolean isNullOrEmpty(@Nullable final Collection<?> collection) {
+        return collection == null || collection.isEmpty();
+    }
+
+    /**
+     * Returns true if ObservableCollection is null or empty.
+     *
+     * @param observableCollection observableCollection to check;
+     * @return True if observableCollection is null or empty.
+     */
+    public static boolean isNullOrEmpty(@Nullable final ObservableCollection<?> observableCollection) {
+        return observableCollection == null || observableCollection.isEmpty();
+    }
+
+    /**
+     * Returns true if map is null or empty.
+     *
+     * @param map Map to check;
+     * @return True if map is null or empty.
+     */
+    public static boolean isNullOrEmpty(@Nullable final Map<?, ?> map) {
+        return map == null || map.isEmpty();
     }
 
     private ObjectUtils() {

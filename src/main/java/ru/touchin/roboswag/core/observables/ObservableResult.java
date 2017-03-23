@@ -15,8 +15,8 @@ public class ObservableResult<T> {
 
     @NonNull
     private final List<T> items = new LinkedList<>();
-    @NonNull
-    private final List<Throwable> errors = new LinkedList<>();
+    @Nullable
+    private Throwable error;
 
     /**
      * Passes item to collect.
@@ -33,7 +33,7 @@ public class ObservableResult<T> {
      * @param error Emitted error.
      */
     public void onError(@NonNull final Throwable error) {
-        errors.add(error);
+        this.error = error;
     }
 
     /**
@@ -47,13 +47,13 @@ public class ObservableResult<T> {
     }
 
     /**
-     * Returns list of collected errors.
+     * Returns collected error.
      *
-     * @return Errors.
+     * @return Error.
      */
-    @NonNull
-    public List<Throwable> getErrors() {
-        return new ArrayList<>(errors);
+    @Nullable
+    public Throwable getError() {
+        return error;
     }
 
 }
