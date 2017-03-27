@@ -142,8 +142,9 @@ public class Storable<TKey, TObject, TStoreObject> {
                 .subscribeOn(scheduler)
                 .observeOn(scheduler)
                 .toObservable()
-                .publish()
-                .refCount();
+                .replay(1)
+                .refCount()
+                .take(1);
     }
 
     @NonNull
@@ -231,7 +232,7 @@ public class Storable<TKey, TObject, TStoreObject> {
 
     @NonNull
     private Completable internalSet(@Nullable final TObject newValue, final boolean checkForEqualityBeforeSet) {
-        return (checkForEqualityBeforeSet ? storeValueObservable.first() : Observable.just(null))
+        return (checkForEqualityBeforeSet ? storeValueObservable.take(1) : Observable.just(null))
                 .observeOn(scheduler)
                 .switchMap(oldStoreValue -> {
                     final TStoreObject newStoreValue;
@@ -322,7 +323,7 @@ public class Storable<TKey, TObject, TStoreObject> {
      */
     @NonNull
     public Observable<TObject> get() {
-        return valueObservable.first();
+        return valueObservable.take(1);
     }
 
     /**
