@@ -19,6 +19,7 @@
 
 package ru.touchin.roboswag.core.log;
 
+import android.annotation.SuppressLint;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
@@ -262,6 +263,7 @@ public final class Lc {
      * @param tag Tag to be shown in logs.
      */
 
+    @SuppressLint("LogConditional")
     public static void printStackTrace(@NonNull final String tag) {
         final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         if (Log.isLoggable(tag, Log.DEBUG)) {
