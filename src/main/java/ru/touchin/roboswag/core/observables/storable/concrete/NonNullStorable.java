@@ -36,6 +36,8 @@ import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
  */
 public class NonNullStorable<TKey, TObject, TStoreObject> extends Storable<TKey, TObject, TStoreObject> {
 
+    private boolean calm;
+
     public NonNullStorable(@NonNull final NonNullStorableBuilder<TKey, TObject, TStoreObject> builderCore) {
         super(builderCore);
     }

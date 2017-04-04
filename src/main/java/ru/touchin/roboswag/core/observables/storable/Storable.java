@@ -26,6 +26,7 @@ import java.lang.reflect.Type;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.log.LcGroup;
 import ru.touchin.roboswag.core.observables.OnSubscribeRefCountWithCacheTime;
 import ru.touchin.roboswag.core.observables.storable.builders.NonNullStorableBuilder;
@@ -35,6 +36,7 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Single;
 import rx.exceptions.OnErrorThrowable;
+import rx.functions.Actions;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
@@ -293,12 +295,15 @@ public class Storable<TKey, TObject, TStoreObject> {
         return internalSet(newValue, true).toObservable();
     }
 
+    public void setCalm(final TObject value) {
+        set(value).subscribe(Actions.empty(), Lc::assertion);
+    }
+
     /**
      * Sets value synchronously. You should NOT use this method normally. Use {@link #set(Object)} asynchronously instead.
      *
      * @param newValue Value to set;
      */
-    @Deprecated
     //deprecation: it should be used for debug only and in very rare cases.
     public void setSync(@Nullable final TObject newValue) {
         set(newValue).toBlocking().subscribe();
@@ -331,7 +336,6 @@ public class Storable<TKey, TObject, TStoreObject> {
      *
      * @return Returns value;
      */
-    @Deprecated
     //deprecation: it should be used for debug only and in very rare cases.
     @Nullable
     public TObject getSync() {
