@@ -24,15 +24,15 @@ public class SequenceObservableExecutor {
                 .create(subscriber ->
                         subscriptionHolder.subscription = sendingScheduler.createWorker().schedule(() -> {
                             final CountDownLatch blocker = new CountDownLatch(1);
-                            final Subscription sendSubscription = completable
+                            final Subscription executeSubscription = completable
                                     .doOnTerminate(blocker::countDown)
-                                    .subscribe();
+                                    .subscribe(subscriber::onError, subscriber::onCompleted);
                             try {
                                 blocker.await();
                             } catch (final InterruptedException exception) {
-                                sendSubscription.unsubscribe();
+                                executeSubscription.unsubscribe();
+                                subscriber.onError(exception);
                             }
-                            subscriber.onCompleted();
                         }))
                 .doOnUnsubscribe(() -> {
                     if (subscriptionHolder.subscription != null && !subscriptionHolder.subscription.isUnsubscribed()) {
