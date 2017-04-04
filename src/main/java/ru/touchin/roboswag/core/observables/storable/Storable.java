@@ -295,7 +295,7 @@ public class Storable<TKey, TObject, TStoreObject> {
         return internalSet(newValue, true).toObservable();
     }
 
-    public void setCalm(final TObject value) {
+    public void setCalm(@Nullable final TObject value) {
         set(value).subscribe(Actions.empty(), Lc::assertion);
     }
 
