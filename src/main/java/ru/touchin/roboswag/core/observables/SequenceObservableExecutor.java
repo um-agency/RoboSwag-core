@@ -17,6 +17,12 @@ import rx.schedulers.Schedulers;
 //TODO: errors/next/completion/single/observable/block next after first fail
 public class SequenceObservableExecutor {
 
+    private static void safeUnsubscribe(@Nullable final Subscription subscription) {
+        if (subscription != null && !subscription.isUnsubscribed()) {
+            subscription.unsubscribe();
+        }
+    }
+
     @NonNull
     private final Scheduler sendingScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
 
@@ -33,7 +39,9 @@ public class SequenceObservableExecutor {
         @NonNull
         private final Observable<?> completable;
         @Nullable
-        private Subscription subscription;
+        private Subscription scheduleSubscription;
+        @Nullable
+        private Subscription executeSubscription;
 
         public Task(@NonNull final Observable<?> completable) {
             this.completable = completable;
@@ -41,24 +49,24 @@ public class SequenceObservableExecutor {
 
         @Override
         public void call(@NonNull final Subscriber subscriber) {
-            subscription = sendingScheduler.createWorker().schedule(() -> {
+            scheduleSubscription = sendingScheduler.createWorker().schedule(() -> {
                 final CountDownLatch blocker = new CountDownLatch(1);
-                final Subscription executeSubscription = completable
-                        .doOnTerminate(blocker::countDown)
+                executeSubscription = completable
+                        .subscribeOn(Schedulers.computation())
+                        .doOnUnsubscribe(blocker::countDown)
                         .subscribe(Actions.empty(), subscriber::onError, subscriber::onCompleted);
                 try {
                     blocker.await();
                 } catch (final InterruptedException exception) {
-                    executeSubscription.unsubscribe();
+                    safeUnsubscribe(executeSubscription);
                     subscriber.onError(exception);
                 }
             });
         }
 
         public void cancel() {
-            if (subscription != null && !subscription.isUnsubscribed()) {
-                subscription.unsubscribe();
-            }
+            safeUnsubscribe(scheduleSubscription);
+            safeUnsubscribe(executeSubscription);
         }
 
     }
