@@ -68,10 +68,10 @@ public class NonNullChangeable<T> extends BaseChangeable<T, T> {
     public Observable<T> observe() {
         return observeOptionalValue()
                 .map(optional -> {
-                    if (optional.getValue() == null) {
+                    if (optional.get() == null) {
                         throw new ShouldNotHappenException();
                     }
-                    return optional.getValue();
+                    return optional.get();
                 });
     }
 

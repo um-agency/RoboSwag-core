@@ -71,7 +71,7 @@ public abstract class BaseChangeable<TValue, TReturnValue> implements Serializab
      */
     @Nullable
     public TValue get() {
-        return valueSubject.getValue().getValue();
+        return valueSubject.getValue().get();
     }
 
     /**

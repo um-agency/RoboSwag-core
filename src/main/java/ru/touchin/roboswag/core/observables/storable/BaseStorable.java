@@ -124,7 +124,7 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
 
     @Nullable
     private Optional<TStoreObject> returnDefaultValueIfNull(@NonNull final Optional<TStoreObject> storeObject, @Nullable final TObject defaultValue) {
-        if (storeObject.getValue() != null || defaultValue == null) {
+        if (storeObject.get() != null || defaultValue == null) {
             return storeObject;
         }
 
@@ -171,7 +171,7 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
         final Observable<Optional<TObject>> result = storeValueObservable
                 .map(storeObject -> {
                     try {
-                        return new Optional<>(converter.toObject(objectType, storeObjectType, storeObject.getValue()));
+                        return new Optional<>(converter.toObject(objectType, storeObjectType, storeObject.get()));
                     } catch (final Converter.ConversionException exception) {
                         STORABLE_LC_GROUP.w(exception, "Exception while trying to converting value of '%s' from store %s by %s",
                                 key, storeObject, store, converter);
@@ -246,7 +246,7 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
                                 key, newValue, store, converter);
                         return Completable.error(exception);
                     }
-                    if (checkForEqualityBeforeSet && ObjectUtils.equals(newStoreValue, oldStoreValue.getValue())) {
+                    if (checkForEqualityBeforeSet && ObjectUtils.equals(newStoreValue, oldStoreValue.get())) {
                         return Completable.complete();
                     }
                     return store.storeObject(storeObjectType, key, newStoreValue)

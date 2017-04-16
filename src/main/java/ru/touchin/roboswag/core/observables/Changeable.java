@@ -46,7 +46,7 @@ public class Changeable<T> extends BaseChangeable<T, T> {
     @Override
     //COMPATIBILITY NOTE: in RxJava2 it should be Observable<Optional<T>>
     public Observable<T> observe() {
-        return observeOptionalValue().map(Optional::getValue);
+        return observeOptionalValue().map(Optional::get);
     }
 
 }

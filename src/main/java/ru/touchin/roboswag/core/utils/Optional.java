@@ -46,7 +46,7 @@ public class Optional<T> implements Serializable {
      * @return Holding object.
      */
     @Nullable
-    public T getValue() {
+    public T get() {
         return value;
     }
 

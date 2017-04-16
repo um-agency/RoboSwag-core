@@ -53,7 +53,7 @@ public class Storable<TKey, TObject, TStoreObject> extends BaseStorable<TKey, TO
     @NonNull
     @Override
     public Observable<TObject> observe() {
-        return observeOptionalValue().map(Optional::getValue);
+        return observeOptionalValue().map(Optional::get);
     }
 
     /**
