@@ -8,9 +8,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
-import rx.Observable;
+import rx.Subscription;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by Gavriil Sitnikov on 02/06/2016.
@@ -23,7 +23,10 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
 
     @NonNull
     private static <TItem> List<TItem> filterCollection(@NonNull final Collection<TItem> sourceCollection,
-                                                        @NonNull final Func1<TItem, Boolean> filter) {
+                                                        @Nullable final Func1<TItem, Boolean> filter) {
+        if (filter == null) {
+            return new ArrayList<>(sourceCollection);
+        }
         final List<TItem> result = new ArrayList<>(sourceCollection.size());
         for (final TItem item : sourceCollection) {
             if (filter.call(item)) {
@@ -33,35 +36,39 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
         return result;
     }
 
-    @Nullable
+    @NonNull
     private List<TItem> filteredList;
-    @Nullable
-    private Collection<TItem> sourceCollection;
+    @NonNull
+    private ObservableCollection<TItem> sourceCollection;
     @Nullable
     private Func1<TItem, Boolean> filter;
-
-    public ObservableFilteredList() {
-        super();
-        //do nothing
-    }
-
-    public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection) {
-        super();
-        this.sourceCollection = new ArrayList<>(sourceCollection);
-        this.filteredList = new ArrayList<>(sourceCollection);
-    }
+    @Nullable
+    private Subscription sourceCollectionSubscription;
 
     public ObservableFilteredList(@NonNull final Func1<TItem, Boolean> filter) {
-        super();
-        this.filter = filter;
+        this(new ArrayList<>(), filter);
     }
 
-    public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection,
-                                  @NonNull final Func1<TItem, Boolean> filter) {
+    public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection, @Nullable final Func1<TItem, Boolean> filter) {
+        this(new ObservableList<>(sourceCollection), filter);
+    }
+
+    public ObservableFilteredList(@NonNull final ObservableCollection<TItem> sourceCollection, @Nullable final Func1<TItem, Boolean> filter) {
         super();
-        this.sourceCollection = new ArrayList<>(sourceCollection);
         this.filter = filter;
-        filteredList = filterCollection(this.sourceCollection, this.filter);
+        this.sourceCollection = sourceCollection;
+        this.filteredList = filterCollection(this.sourceCollection.getItems(), this.filter);
+        update();
+    }
+
+    /**
+     * Sets collection of items to filter.
+     *
+     * @param sourceCollection Collection with items.
+     */
+    public void setSourceCollection(@Nullable final ObservableCollection<TItem> sourceCollection) {
+        this.sourceCollection = sourceCollection != null ? sourceCollection : new ObservableList<>();
+        update();
     }
 
     /**
@@ -70,8 +77,8 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
      * @param sourceCollection Collection with items.
      */
     public void setSourceCollection(@Nullable final Collection<TItem> sourceCollection) {
-        this.sourceCollection = sourceCollection != null ? new ArrayList<>(sourceCollection) : null;
-        updateCollections();
+        this.sourceCollection = sourceCollection != null ? new ObservableList<>(sourceCollection) : new ObservableList<>();
+        update();
     }
 
     /**
@@ -81,73 +88,51 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
      */
     public void setFilter(@Nullable final Func1<TItem, Boolean> filter) {
         this.filter = filter;
-        updateCollections();
+        update();
     }
 
     /**
      * Updates collection by current filter. Use it if some item's parameter which is important for filtering have changing.
      */
-    public void updateCollections() {
-        if (sourceCollection == null) {
-            if (filteredList != null) {
-                final Change<TItem> change = new Change<>(Change.Type.REMOVED, filteredList, 0);
-                filteredList = null;
-                notifyAboutChange(change);
-            }
-            return;
+    private void update() {
+        if (sourceCollectionSubscription != null) {
+            sourceCollectionSubscription.unsubscribe();
+            sourceCollectionSubscription = null;
         }
-        final List<TItem> oldFilteredList = filteredList;
-        if (filter != null) {
-            filteredList = filterCollection(sourceCollection, filter);
-        } else {
-            filteredList = new ArrayList<>(sourceCollection);
-        }
-        if (oldFilteredList != null) {
-            final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(oldFilteredList, filteredList, false);
-            if (!changes.isEmpty()) {
-                notifyAboutChanges(changes);
-            }
-        } else {
-            notifyAboutChange(new Change<>(Change.Type.INSERTED, filteredList, 0));
-        }
+        sourceCollectionSubscription = sourceCollection.observeItems()
+                .observeOn(Schedulers.computation())
+                .subscribe(items -> {
+                    final List<TItem> oldFilteredList = filteredList;
+                    filteredList = filterCollection(items, filter);
+                    notifyAboutChanges(Change.calculateCollectionChanges(oldFilteredList, filteredList, false));
+                });
     }
 
     @Override
     public int size() {
-        return filteredList != null ? filteredList.size() : 0;
+        return filteredList.size();
     }
 
     @NonNull
     @Override
     public TItem get(final int position) {
-        if (filteredList == null) {
-            throw new ShouldNotHappenException();
-        }
         return filteredList.get(position);
     }
 
     @NonNull
     @Override
     public Collection<TItem> getItems() {
-        return filteredList != null ? Collections.unmodifiableCollection(filteredList) : Collections.emptyList();
+        return Collections.unmodifiableCollection(filteredList);
     }
 
     /**
-     * Returns source non-filtered collection of items.
+     * Returns source non-filtered observable collection of items.
      *
      * @return Non-filtered collection of items.
      */
     @NonNull
-    public Collection<TItem> getSourceItems() {
-        return sourceCollection != null ? Collections.unmodifiableCollection(sourceCollection) : Collections.emptyList();
-    }
-
-    @NonNull
-    @Override
-    public Observable<TItem> loadItem(final int position) {
-        return filteredList != null && filteredList.size() > position
-                ? Observable.just(filteredList.get(position))
-                : Observable.just(null);
+    public ObservableCollection<TItem> getSourceCollection() {
+        return sourceCollection;
     }
 
 }

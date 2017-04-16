@@ -85,9 +85,7 @@ public class NullablePair<TFirst, TSecond> implements Serializable { //todo: mb 
 
     @Override
     public int hashCode() {
-        int result = first.hashCode();
-        result = 31 * result + second.hashCode();
-        return result;
+        return ObjectUtils.hashCode(first, second);
     }
 
 }

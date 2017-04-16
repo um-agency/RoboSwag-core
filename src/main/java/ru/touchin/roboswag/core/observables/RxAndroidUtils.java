@@ -20,9 +20,11 @@
 package ru.touchin.roboswag.core.observables;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.Looper;
@@ -33,9 +35,9 @@ import java.util.concurrent.CountDownLatch;
 
 import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.utils.ServiceBinder;
+import rx.Emitter;
 import rx.Observable;
 import rx.Scheduler;
-import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
 
 /**
@@ -55,16 +57,42 @@ public final class RxAndroidUtils {
     @NonNull
     public static <T extends Service> Observable<T> observeService(@NonNull final Context context, @NonNull final Class<T> serviceClass) {
         return Observable
-                .just(new SubscribeServiceConnection<T>())
-                .switchMap(serviceConnection -> Observable
-                        .<T>create(subscriber -> {
-                            serviceConnection.subscriber = subscriber;
-                            context.bindService(new Intent(context, serviceClass), serviceConnection, Context.BIND_AUTO_CREATE);
-                        })
-                        .doOnUnsubscribe(() -> context.unbindService(serviceConnection)))
+                .just(new OnSubscribeServiceConnection<T>())
+                .switchMap(onSubscribeServiceConnection -> Observable
+                        .<T>create(emitter -> {
+                            onSubscribeServiceConnection.emitter = emitter;
+                            context.bindService(new Intent(context, serviceClass), onSubscribeServiceConnection, Context.BIND_AUTO_CREATE);
+                        }, Emitter.BackpressureMode.LATEST)
+                        .doOnUnsubscribe(() -> {
+                            context.unbindService(onSubscribeServiceConnection);
+                            onSubscribeServiceConnection.emitter = null;
+                        }))
                 .distinctUntilChanged()
                 .replay(1)
                 .refCount();
+    }
+
+    /**
+     * Observes classic Android broadcast with {@link BroadcastReceiver} as source of Observable items and Intent as items.
+     *
+     * @param context      Context to register {@link BroadcastReceiver};
+     * @param intentFilter {@link IntentFilter} to register {@link BroadcastReceiver};
+     * @return Observable that observes Android broadcasts.
+     */
+    @NonNull
+    public static Observable<Intent> observeBroadcastEvent(@NonNull final Context context, @NonNull final IntentFilter intentFilter) {
+        return Observable
+                .just(new OnSubscribeBroadcastReceiver())
+                .switchMap(onOnSubscribeBroadcastReceiver -> Observable
+                        .<Intent>create(emitter -> {
+                            onOnSubscribeBroadcastReceiver.emitter = emitter;
+                            context.registerReceiver(onOnSubscribeBroadcastReceiver, intentFilter);
+                        }, Emitter.BackpressureMode.LATEST)
+                        .doOnUnsubscribe(() -> {
+                            context.unregisterReceiver(onOnSubscribeBroadcastReceiver);
+                            onOnSubscribeBroadcastReceiver.emitter = null;
+                        }))
+                .share();
     }
 
     /**
@@ -72,6 +100,7 @@ public final class RxAndroidUtils {
      * Do not use it much times - it is creating endless thread every call.
      * It's good to use it only like a constant like:
      * private static final Scheduler SCHEDULER = RxAndroidUtils.createLooperScheduler();
+     * IMPORTANT NOTE: looper thread will live forever! Do not create a lot of such Schedulers.
      *
      * @return Looper thread based {@link Scheduler}.
      */
@@ -91,20 +120,19 @@ public final class RxAndroidUtils {
     private RxAndroidUtils() {
     }
 
-    private static class SubscribeServiceConnection<T> implements ServiceConnection {
-
+    private static class OnSubscribeServiceConnection<TService extends Service> implements ServiceConnection {
         @Nullable
-        private Subscriber<? super T> subscriber;
+        private Emitter<? super TService> emitter;
 
         @SuppressWarnings("unchecked")
         @Override
         public void onServiceConnected(@NonNull final ComponentName name, @Nullable final IBinder service) {
-            if (subscriber == null) {
+            if (emitter == null) {
                 return;
             }
 
             if (service instanceof ServiceBinder) {
-                subscriber.onNext((T) ((ServiceBinder) service).getService());
+                emitter.onNext((TService) ((ServiceBinder) service).getService());
             } else {
                 Lc.assertion("IBinder should be instance of ServiceBinder.");
             }
@@ -112,8 +140,21 @@ public final class RxAndroidUtils {
 
         @Override
         public void onServiceDisconnected(@NonNull final ComponentName name) {
-            if (subscriber != null) {
-                subscriber.onNext(null);
+            // service have been killed/crashed and destroyed. instead of emit null just wait service reconnection.
+            // even if someone keeps reference to dead service it is problem of service object to work correctly after destroy.
+        }
+
+    }
+
+    private static class OnSubscribeBroadcastReceiver extends BroadcastReceiver {
+
+        @Nullable
+        private Emitter<? super Intent> emitter;
+
+        @Override
+        public void onReceive(@NonNull final Context context, @NonNull final Intent intent) {
+            if (emitter != null) {
+                emitter.onNext(intent);
             }
         }
 
