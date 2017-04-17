@@ -29,8 +29,8 @@ import java.io.Serializable;
 
 import ru.touchin.roboswag.core.utils.ObjectUtils;
 import ru.touchin.roboswag.core.utils.Optional;
-import rx.Observable;
-import rx.subjects.BehaviorSubject;
+import io.reactivex.Observable;
+import io.reactivex.subjects.BehaviorSubject;
 
 /**
  * Created by Gavriil Sitnikov on 24/03/2016.
@@ -47,7 +47,7 @@ public abstract class BaseChangeable<TValue, TReturnValue> implements Serializab
     private transient BehaviorSubject<Optional<TValue>> valueSubject;
 
     public BaseChangeable(@Nullable final TValue defaultValue) {
-        valueSubject = BehaviorSubject.create(new Optional<>(defaultValue));
+        valueSubject = BehaviorSubject.createDefault(new Optional<>(defaultValue));
     }
 
     @NonNull
@@ -88,7 +88,7 @@ public abstract class BaseChangeable<TValue, TReturnValue> implements Serializab
 
     @SuppressWarnings("unchecked")
     private void readObject(@NonNull final ObjectInputStream inputStream) throws IOException, ClassNotFoundException {
-        valueSubject = BehaviorSubject.create((Optional<TValue>) inputStream.readObject());
+        valueSubject = BehaviorSubject.createDefault((Optional<TValue>) inputStream.readObject());
     }
 
     @Override

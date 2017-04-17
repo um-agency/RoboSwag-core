@@ -28,8 +28,8 @@ import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Collections;
 
-import rx.Emitter;
-import rx.Observable;
+import io.reactivex.Emitter;
+import io.reactivex.Observable;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
@@ -57,8 +57,8 @@ public abstract class ObservableCollection<TItem> {
     @NonNull
     private Observable<CollectionChange<TItem>> createChangesObservable() {
         return Observable
-                .<CollectionChange<TItem>>create(emitter -> this.changesEmitter = emitter, Emitter.BackpressureMode.BUFFER)
-                .doOnUnsubscribe(() -> this.changesEmitter = null)
+                .<CollectionChange<TItem>>create(emitter -> this.changesEmitter = emitter)
+                .doOnDispose(() -> this.changesEmitter = null)
                 .share();
     }
 

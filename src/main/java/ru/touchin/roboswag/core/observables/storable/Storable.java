@@ -25,10 +25,9 @@ import android.support.annotation.Nullable;
 import java.lang.reflect.Type;
 import java.util.concurrent.TimeUnit;
 
-import ru.touchin.roboswag.core.observables.storable.concrete.NonNullStorable;
 import ru.touchin.roboswag.core.utils.Optional;
-import rx.Observable;
-import rx.Scheduler;
+import io.reactivex.Observable;
+import io.reactivex.Scheduler;
 
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.
@@ -43,8 +42,7 @@ import rx.Scheduler;
  * @param <TObject>      Type of actual object;
  * @param <TStoreObject> Type of store object. Could be same as {@link TObject}.
  */
-//COMPATIBILITY NOTE: in RxJava2 it should extends BaseStorable<TKey, TObject, TStoreObject, Optional<TObject>>
-public class Storable<TKey, TObject, TStoreObject> extends BaseStorable<TKey, TObject, TStoreObject, TObject> {
+public class Storable<TKey, TObject, TStoreObject> extends BaseStorable<TKey, TObject, TStoreObject, Optional<TObject>> {
 
     public Storable(@NonNull final BuilderCore<TKey, TObject, TStoreObject> builderCore) {
         super(builderCore);
@@ -52,8 +50,8 @@ public class Storable<TKey, TObject, TStoreObject> extends BaseStorable<TKey, TO
 
     @NonNull
     @Override
-    public Observable<TObject> observe() {
-        return observeOptionalValue().map(Optional::get);
+    public Observable<Optional<TObject>> observe() {
+        return observeOptionalValue();
     }
 
     /**

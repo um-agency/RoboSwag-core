@@ -25,8 +25,8 @@ import android.support.annotation.Nullable;
 import java.lang.reflect.Type;
 
 import ru.touchin.roboswag.core.utils.Optional;
-import rx.Completable;
-import rx.Single;
+import io.reactivex.Completable;
+import io.reactivex.Single;
 
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.

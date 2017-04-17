@@ -23,7 +23,8 @@ import android.support.annotation.NonNull;
 
 import java.security.MessageDigest;
 
-import rx.functions.Func1;
+import io.reactivex.functions.Function;
+import ru.touchin.roboswag.core.log.Lc;
 
 /**
  * Created by Gavriil Sitnikov on 29/08/2016.
@@ -65,11 +66,15 @@ public final class StringUtils {
      * @param condition Condition of symbol;
      * @return True if some character satisfies condition.
      */
-    public static boolean containsCharLike(@NonNull final String text, @NonNull final Func1<Character, Boolean> condition) {
-        for (int i = 0; i < text.length(); i++) {
-            if (condition.call(text.charAt(i))) {
-                return true;
+    public static boolean containsCharLike(@NonNull final String text, @NonNull final Function<Character, Boolean> condition) {
+        try {
+            for (int i = 0; i < text.length(); i++) {
+                if (condition.apply(text.charAt(i))) {
+                    return true;
+                }
             }
+        } catch (final Exception exception) {
+            Lc.assertion(exception);
         }
         return false;
     }

@@ -21,7 +21,7 @@ package ru.touchin.roboswag.core.observables.collections.loadable;
 
 import android.support.annotation.NonNull;
 
-import rx.Observable;
+import io.reactivex.Single;
 
 /**
  * Created by Gavriil Sitnikov on 02/06/2016.
@@ -34,12 +34,12 @@ import rx.Observable;
 public interface MoreItemsLoader<TItem, TMoreReference, TLoadedItems extends LoadedItems<TItem, TMoreReference>> {
 
     /**
-     * Returns {@link Observable} that could load next part of items.
+     * Returns {@link Single} that could load next part of items.
      *
      * @param moreLoadRequest Request with info inside to load next part of items;
-     * @return {@link Observable} of loading items.
+     * @return {@link Single} of loading items.
      */
     @NonNull
-    Observable<TLoadedItems> load(@NonNull final MoreLoadRequest<TMoreReference> moreLoadRequest);
+    Single<TLoadedItems> load(@NonNull final MoreLoadRequest<TMoreReference> moreLoadRequest);
 
 }

@@ -21,7 +21,7 @@ package ru.touchin.roboswag.core.observables.storable;
 
 import android.support.annotation.NonNull;
 
-import rx.Single;
+import io.reactivex.Single;
 
 /**
  * Created by Gavriil Sitnikov on 05/10/2015.

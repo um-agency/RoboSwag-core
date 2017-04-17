@@ -23,7 +23,7 @@ import android.support.annotation.NonNull;
 
 import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
-import rx.Observable;
+import io.reactivex.Observable;
 
 /**
  * Created by Gavriil Sitnikov on 24/03/2016.

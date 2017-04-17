@@ -8,9 +8,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import rx.Subscription;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
+import ru.touchin.roboswag.core.log.Lc;
 
 /**
  * Created by Gavriil Sitnikov on 02/06/2016.
@@ -23,15 +24,19 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
 
     @NonNull
     private static <TItem> List<TItem> filterCollection(@NonNull final Collection<TItem> sourceCollection,
-                                                        @Nullable final Func1<TItem, Boolean> filter) {
+                                                        @Nullable final Function<TItem, Boolean> filter) {
         if (filter == null) {
             return new ArrayList<>(sourceCollection);
         }
         final List<TItem> result = new ArrayList<>(sourceCollection.size());
-        for (final TItem item : sourceCollection) {
-            if (filter.call(item)) {
-                result.add(item);
+        try {
+            for (final TItem item : sourceCollection) {
+                if (filter.apply(item)) {
+                    result.add(item);
+                }
             }
+        } catch (final Exception exception) {
+            Lc.assertion(exception);
         }
         return result;
     }
@@ -41,19 +46,19 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
     @NonNull
     private ObservableCollection<TItem> sourceCollection;
     @Nullable
-    private Func1<TItem, Boolean> filter;
+    private Function<TItem, Boolean> filter;
     @Nullable
-    private Subscription sourceCollectionSubscription;
+    private Disposable sourceCollectionSubscription;
 
-    public ObservableFilteredList(@NonNull final Func1<TItem, Boolean> filter) {
+    public ObservableFilteredList(@NonNull final Function<TItem, Boolean> filter) {
         this(new ArrayList<>(), filter);
     }
 
-    public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection, @Nullable final Func1<TItem, Boolean> filter) {
+    public ObservableFilteredList(@NonNull final Collection<TItem> sourceCollection, @Nullable final Function<TItem, Boolean> filter) {
         this(new ObservableList<>(sourceCollection), filter);
     }
 
-    public ObservableFilteredList(@NonNull final ObservableCollection<TItem> sourceCollection, @Nullable final Func1<TItem, Boolean> filter) {
+    public ObservableFilteredList(@NonNull final ObservableCollection<TItem> sourceCollection, @Nullable final Function<TItem, Boolean> filter) {
         super();
         this.filter = filter;
         this.sourceCollection = sourceCollection;
@@ -86,7 +91,7 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
      *
      * @param filter Function to filter item. True - item will stay, false - item will be filtered.
      */
-    public void setFilter(@Nullable final Func1<TItem, Boolean> filter) {
+    public void setFilter(@Nullable final Function<TItem, Boolean> filter) {
         this.filter = filter;
         update();
     }
@@ -96,7 +101,7 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
      */
     private void update() {
         if (sourceCollectionSubscription != null) {
-            sourceCollectionSubscription.unsubscribe();
+            sourceCollectionSubscription.dispose();
             sourceCollectionSubscription = null;
         }
         sourceCollectionSubscription = sourceCollection.observeItems()

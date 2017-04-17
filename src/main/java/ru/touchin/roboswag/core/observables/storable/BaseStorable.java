@@ -26,19 +26,17 @@ import java.lang.reflect.Type;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import ru.touchin.roboswag.core.log.Lc;
+import io.reactivex.Completable;
+import io.reactivex.Observable;
+import io.reactivex.Scheduler;
+import io.reactivex.Single;
+import io.reactivex.plugins.RxJavaPlugins;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subjects.PublishSubject;
 import ru.touchin.roboswag.core.log.LcGroup;
-import ru.touchin.roboswag.core.observables.OnSubscribeRefCountWithCacheTime;
+import ru.touchin.roboswag.core.observables.ObservableRefCountWithCacheTime;
 import ru.touchin.roboswag.core.utils.ObjectUtils;
 import ru.touchin.roboswag.core.utils.Optional;
-import rx.Completable;
-import rx.Observable;
-import rx.Scheduler;
-import rx.Single;
-import rx.exceptions.OnErrorThrowable;
-import rx.functions.Actions;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
 
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.
@@ -123,7 +121,8 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
     }
 
     @Nullable
-    private Optional<TStoreObject> returnDefaultValueIfNull(@NonNull final Optional<TStoreObject> storeObject, @Nullable final TObject defaultValue) {
+    private Optional<TStoreObject> returnDefaultValueIfNull(@NonNull final Optional<TStoreObject> storeObject, @Nullable final TObject defaultValue)
+            throws Converter.ConversionException {
         if (storeObject.get() != null || defaultValue == null) {
             return storeObject;
         }
@@ -133,7 +132,7 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
         } catch (final Converter.ConversionException exception) {
             STORABLE_LC_GROUP.w(exception, "Exception while converting default value of '%s' from '%s' from store %s",
                     key, defaultValue, store);
-            throw OnErrorThrowable.from(exception);
+            throw exception;
         }
     }
 
@@ -160,7 +159,7 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
                 .concatWith(newStoreValueEvent)
                 .map(storeObject -> returnDefaultValueIfNull(storeObject, defaultValue));
         return observeStrategy == ObserveStrategy.CACHE_STORE_VALUE || observeStrategy == ObserveStrategy.CACHE_STORE_AND_ACTUAL_VALUE
-                ? Observable.unsafeCreate(new OnSubscribeRefCountWithCacheTime<>(result.replay(1), cacheTimeMillis, TimeUnit.MILLISECONDS))
+                ? RxJavaPlugins.onAssembly(new ObservableRefCountWithCacheTime<>(result.replay(1), cacheTimeMillis, TimeUnit.MILLISECONDS))
                 : result;
     }
 
@@ -175,11 +174,11 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
                     } catch (final Converter.ConversionException exception) {
                         STORABLE_LC_GROUP.w(exception, "Exception while trying to converting value of '%s' from store %s by %s",
                                 key, storeObject, store, converter);
-                        throw OnErrorThrowable.from(exception);
+                        throw exception;
                     }
                 });
         return observeStrategy == ObserveStrategy.CACHE_ACTUAL_VALUE || observeStrategy == ObserveStrategy.CACHE_STORE_AND_ACTUAL_VALUE
-                ? Observable.unsafeCreate(new OnSubscribeRefCountWithCacheTime<>(result.replay(1), cacheTimeMillis, TimeUnit.MILLISECONDS))
+                ? RxJavaPlugins.onAssembly(new ObservableRefCountWithCacheTime<>(result.replay(1), cacheTimeMillis, TimeUnit.MILLISECONDS))
                 : result;
     }
 
@@ -235,7 +234,7 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
 
     @NonNull
     private Completable internalSet(@Nullable final TObject newValue, final boolean checkForEqualityBeforeSet) {
-        return (checkForEqualityBeforeSet ? storeValueObservable.take(1).toSingle() : Single.just(new Optional<>(null)))
+        return (checkForEqualityBeforeSet ? storeValueObservable.firstOrError() : Single.just(new Optional<>(null)))
                 .observeOn(scheduler)
                 .flatMapCompletable(oldStoreValue -> {
                     final TStoreObject newStoreValue;
@@ -274,10 +273,9 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
      * @param newValue Value to set;
      * @return Observable of setting process.
      */
-    //COMPATIBILITY NOTE: it is not Completable to prevent migration of old code
     @NonNull
-    public Observable<?> forceSet(@Nullable final TObject newValue) {
-        return internalSet(newValue, false).toObservable();
+    public Completable forceSet(@Nullable final TObject newValue) {
+        return internalSet(newValue, false);
     }
 
     /**
@@ -290,16 +288,9 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
      * @param newValue Value to set;
      * @return Observable of setting process.
      */
-    //COMPATIBILITY NOTE: it is not Completable to prevent migration of old code
     @NonNull
-    public Observable<?> set(@Nullable final TObject newValue) {
-        return internalSet(newValue, true).toObservable();
-    }
-
-    @Deprecated
-    //COMPATIBILITY NOTE: it is deprecated as it's execution not bound to Android lifecycle objects
-    public void setCalm(@Nullable final TObject newValue) {
-        set(newValue).subscribe(Actions.empty(), Lc::assertion);
+    public Completable set(@Nullable final TObject newValue) {
+        return internalSet(newValue, true);
     }
 
     /**
@@ -310,7 +301,7 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
     @Deprecated
     //deprecation: it should be used for debug only and in very rare cases.
     public void setSync(@Nullable final TObject newValue) {
-        set(newValue).toBlocking().subscribe();
+        set(newValue).blockingAwait();
     }
 
     @NonNull
@@ -334,9 +325,8 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
      * @return Returns observable of value.
      */
     @NonNull
-    //COMPATIBILITY NOTE: it is not Single to prevent migration of old code
-    public Observable<TReturnObject> get() {
-        return observe().take(1);
+    public Single<TReturnObject> get() {
+        return observe().firstOrError();
     }
 
     /**
@@ -348,7 +338,7 @@ public abstract class BaseStorable<TKey, TObject, TStoreObject, TReturnObject> {
     //deprecation: it should be used for debug only and in very rare cases.
     @Nullable
     public TReturnObject getSync() {
-        return get().toBlocking().first();
+        return get().blockingGet();
     }
 
     /**

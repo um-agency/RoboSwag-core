@@ -22,16 +22,15 @@ package ru.touchin.roboswag.core.observables;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import io.reactivex.Observable;
 import ru.touchin.roboswag.core.utils.Optional;
-import rx.Observable;
 
 /**
  * Created by Gavriil Sitnikov on 24/03/2016.
  * Variant of {@link BaseChangeable} which is allows to set nullable values.
  * Needed to separate non-null Changeable from nullable Changeable.
  */
-//COMPATIBILITY NOTE: in RxJava2 it should extends BaseChangeable<T, Optional<T>>
-public class Changeable<T> extends BaseChangeable<T, T> {
+public class Changeable<T> extends BaseChangeable<T, Optional<T>> {
 
     public Changeable(@Nullable final T defaultValue) {
         super(defaultValue);
@@ -44,9 +43,8 @@ public class Changeable<T> extends BaseChangeable<T, T> {
      */
     @NonNull
     @Override
-    //COMPATIBILITY NOTE: in RxJava2 it should be Observable<Optional<T>>
-    public Observable<T> observe() {
-        return observeOptionalValue().map(Optional::get);
+    public Observable<Optional<T>> observe() {
+        return observeOptionalValue();
     }
 
 }

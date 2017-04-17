@@ -24,10 +24,9 @@ import android.support.annotation.NonNull;
 import java.util.Arrays;
 import java.util.List;
 
-import rx.Completable;
-import rx.Observable;
-import rx.Single;
-import rx.exceptions.OnErrorThrowable;
+import io.reactivex.Completable;
+import io.reactivex.Flowable;
+import io.reactivex.Single;
 
 /**
  * Created by Gavriil Sitnikov on 06/10/2015.
@@ -91,15 +90,16 @@ public class Migration<TKey> {
                     return makeMigrationChain(key, versionUpdater)
                             .doOnSuccess(lastUpdatedVersion -> {
                                 if (lastUpdatedVersion < latestVersion) {
-                                    throw OnErrorThrowable.from(new NextLoopMigrationException());
+                                    throw new NextLoopMigrationException();
                                 }
                                 if (versionUpdater.initialVersion == versionUpdater.oldVersion) {
                                     throw new MigrationException(String.format("Version of '%s' not updated from %s",
                                             key, versionUpdater.initialVersion));
                                 }
                             })
-                            .retryWhen(attempts -> attempts.switchMap(throwable -> throwable instanceof NextLoopMigrationException
-                                    ? Observable.just(null) : Observable.error(throwable)));
+                            .retryWhen(attempts -> attempts
+                                    .switchMap(throwable -> throwable instanceof NextLoopMigrationException
+                                            ? Flowable.just(new Object()) : Flowable.error(throwable)));
                 })
                 .toCompletable()
                 .andThen(versionsStore.storeObject(Long.class, key, latestVersion))

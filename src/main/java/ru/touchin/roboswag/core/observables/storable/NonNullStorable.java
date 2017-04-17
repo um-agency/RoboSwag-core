@@ -17,19 +17,16 @@
  *
  */
 
-package ru.touchin.roboswag.core.observables.storable.concrete;
+package ru.touchin.roboswag.core.observables.storable;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import java.util.concurrent.TimeUnit;
 
-import ru.touchin.roboswag.core.observables.storable.BaseStorable;
-import ru.touchin.roboswag.core.observables.storable.Migration;
-import ru.touchin.roboswag.core.observables.storable.Storable;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
-import rx.Observable;
-import rx.Scheduler;
+import io.reactivex.Observable;
+import io.reactivex.Scheduler;
 
 /**
  * Created by Gavriil Sitnikov on 04/10/2015.

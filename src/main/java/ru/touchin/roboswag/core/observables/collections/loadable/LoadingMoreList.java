@@ -26,21 +26,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
+import io.reactivex.Observable;
+import io.reactivex.Scheduler;
+import io.reactivex.Single;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subjects.BehaviorSubject;
 import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.observables.collections.Change;
 import ru.touchin.roboswag.core.observables.collections.ObservableCollection;
 import ru.touchin.roboswag.core.observables.collections.ObservableList;
-import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
-import rx.Observable;
-import rx.Scheduler;
-import rx.exceptions.OnErrorThrowable;
-import rx.functions.Func0;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
-import rx.subjects.BehaviorSubject;
+import ru.touchin.roboswag.core.utils.Optional;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
@@ -66,7 +65,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
     @NonNull
     private Observable<TLoadedItems> loadingMoreObservable;
     @NonNull
-    private final BehaviorSubject<Integer> moreItemsCount = BehaviorSubject.create(LoadedItems.UNKNOWN_ITEMS_COUNT);
+    private final BehaviorSubject<Integer> moreItemsCount = BehaviorSubject.createDefault(LoadedItems.UNKNOWN_ITEMS_COUNT);
     @NonNull
     private final ObservableList<TItem> innerList = new ObservableList<>();
     @Nullable
@@ -84,14 +83,8 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
                            @Nullable final LoadedItems<TItem, TMoreReference> initialItems) {
         super();
         this.loadingMoreObservable = Observable
-                .switchOnNext(Observable.fromCallable(() -> createLoadRequestBasedObservable(this::createActualRequest, moreMoreItemsLoader::load)))
-                .single()
-                .doOnError(throwable -> {
-                    if (throwable instanceof IllegalArgumentException || throwable instanceof NoSuchElementException) {
-                        Lc.assertion(new ShouldNotHappenException("Updates during loading not supported."
-                                + " MoreItemsLoader should emit only one result.", throwable));
-                    }
-                })
+                .switchOnNext(Observable
+                        .fromCallable(() -> createLoadRequestBasedObservable(this::createActualRequest, moreMoreItemsLoader::load).toObservable()))
                 .doOnNext(loadedItems -> onItemsLoaded(loadedItems, size(), false))
                 .replay(1)
                 .refCount();
@@ -112,16 +105,16 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
     }
 
     @NonNull
-    protected <T, TRequest> Observable<T> createLoadRequestBasedObservable(@NonNull final Func0<TRequest> requestCreator,
-                                                                           @NonNull final Func1<TRequest, Observable<T>> observableCreator) {
-        return Observable
+    protected <T, TRequest> Single<T> createLoadRequestBasedObservable(@NonNull final Callable<TRequest> requestCreator,
+                                                                       @NonNull final Function<TRequest, Single<T>> observableCreator) {
+        return Single
                 .fromCallable(requestCreator)
-                .switchMap(loadRequest -> observableCreator.call(loadRequest)
+                .flatMap(loadRequest -> observableCreator.apply(loadRequest)
                         .subscribeOn(Schedulers.io())
                         .observeOn(loaderScheduler)
-                        .doOnNext(ignored -> {
+                        .doOnSuccess(ignored -> {
                             if (!requestCreator.call().equals(loadRequest)) {
-                                throw OnErrorThrowable.from(new RequestChangedDuringLoadingException());
+                                throw new RequestChangedDuringLoadingException();
                             }
                         }))
                 .retry((number, throwable) ->
@@ -294,20 +287,20 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
      * @return {@link Observable} to load item.
      */
     @NonNull
-    public Observable<TItem> loadItem(final int position) {
-        return Observable
-                .switchOnNext(Observable
-                        .fromCallable(() -> {
-                            if (position < size()) {
-                                return Observable.just(get(position));
-                            } else if (moreItemsCount.getValue() == 0) {
-                                return Observable.just((TItem) null);
-                            } else {
-                                return loadingMoreObservable.switchMap(ignored -> Observable.<TItem>error(new NotLoadedYetException()));
-                            }
-                        })
-                        .subscribeOn(loaderScheduler))
-                .retry((number, throwable) -> throwable instanceof NotLoadedYetException);
+    public Single<Optional<TItem>> loadItem(final int position) {
+        return Observable.switchOnNext(Observable
+                .fromCallable(() -> {
+                    if (position < size()) {
+                        return Observable.just(new Optional<>(get(position)));
+                    } else if (moreItemsCount.getValue() == 0) {
+                        return Observable.just(new Optional<TItem>(null));
+                    } else {
+                        return loadingMoreObservable.switchMap(ignored -> Observable.<Optional<TItem>>error(new NotLoadedYetException()));
+                    }
+                }))
+                .subscribeOn(loaderScheduler)
+                .retry((number, throwable) -> throwable instanceof NotLoadedYetException)
+                .firstOrError();
     }
 
     /**
@@ -319,15 +312,24 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
      * @return {@link Observable} to load items.
      */
     @NonNull
-    public Observable<Collection<TItem>> loadRange(final int first, final int last) {
-        final List<Observable<TItem>> itemsRequests = new ArrayList<>();
+    @SuppressWarnings("unchecked")
+    //unchecked: it's OK for such zip operator
+    public Single<Collection<TItem>> loadRange(final int first, final int last) {
+        final List<Single<Optional<TItem>>> itemsRequests = new ArrayList<>();
         for (int i = first; i <= last; i++) {
             itemsRequests.add(loadItem(i));
         }
-        return Observable.concatEager(itemsRequests)
-                .filter(loadedItem -> loadedItem != null)
-                .toList()
-                .map(Collections::unmodifiableCollection);
+        return Single.zip(itemsRequests,
+                items -> {
+                    final List<TItem> result = new ArrayList<>();
+                    for (final Object item : items) {
+                        final Optional<TItem> optional = (Optional<TItem>) item;
+                        if (optional.get() != null) {
+                            result.add(optional.get());
+                        }
+                    }
+                    return Collections.unmodifiableCollection(result);
+                });
     }
 
     /**

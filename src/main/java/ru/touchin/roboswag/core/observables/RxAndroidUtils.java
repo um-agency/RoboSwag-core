@@ -33,12 +33,12 @@ import android.support.annotation.Nullable;
 
 import java.util.concurrent.CountDownLatch;
 
+import io.reactivex.Emitter;
+import io.reactivex.Observable;
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.utils.ServiceBinder;
-import rx.Emitter;
-import rx.Observable;
-import rx.Scheduler;
-import rx.android.schedulers.AndroidSchedulers;
 
 /**
  * Created by Gavriil Sitnikov on 10/01/2016.
@@ -62,8 +62,8 @@ public final class RxAndroidUtils {
                         .<T>create(emitter -> {
                             onSubscribeServiceConnection.emitter = emitter;
                             context.bindService(new Intent(context, serviceClass), onSubscribeServiceConnection, Context.BIND_AUTO_CREATE);
-                        }, Emitter.BackpressureMode.LATEST)
-                        .doOnUnsubscribe(() -> {
+                        })
+                        .doOnDispose(() -> {
                             context.unbindService(onSubscribeServiceConnection);
                             onSubscribeServiceConnection.emitter = null;
                         }))
@@ -87,8 +87,8 @@ public final class RxAndroidUtils {
                         .<Intent>create(emitter -> {
                             onOnSubscribeBroadcastReceiver.emitter = emitter;
                             context.registerReceiver(onOnSubscribeBroadcastReceiver, intentFilter);
-                        }, Emitter.BackpressureMode.LATEST)
-                        .doOnUnsubscribe(() -> {
+                        })
+                        .doOnDispose(() -> {
                             context.unregisterReceiver(onOnSubscribeBroadcastReceiver);
                             onOnSubscribeBroadcastReceiver.emitter = null;
                         }))
