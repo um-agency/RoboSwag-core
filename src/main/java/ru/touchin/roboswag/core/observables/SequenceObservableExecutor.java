@@ -52,7 +52,8 @@ public class SequenceObservableExecutor {
             scheduleSubscription = sendingScheduler.createWorker().schedule(() -> {
                 final CountDownLatch blocker = new CountDownLatch(1);
                 executeSubscription = completable
-                        .subscribeOn(Schedulers.computation())
+                        //TODO think how to replace it
+                        .subscribeOn(Schedulers.newThread())
                         .doOnUnsubscribe(blocker::countDown)
                         .subscribe(Actions.empty(), subscriber::onError, subscriber::onCompleted);
                 try {
