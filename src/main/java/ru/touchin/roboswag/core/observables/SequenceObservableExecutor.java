@@ -7,6 +7,7 @@ import android.support.annotation.Nullable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
+import ru.touchin.roboswag.core.utils.ProcessPriorityThreadFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
@@ -25,6 +26,9 @@ public class SequenceObservableExecutor {
 
     @NonNull
     private final Scheduler sendingScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+    @NonNull
+    private final Scheduler executeScheduler = Schedulers.from(Executors.newSingleThreadExecutor(
+            new ProcessPriorityThreadFactory(Thread.MIN_PRIORITY)));
 
     @NonNull
     public Observable<?> execute(@NonNull final Observable<?> completable) {
@@ -52,8 +56,7 @@ public class SequenceObservableExecutor {
             scheduleSubscription = sendingScheduler.createWorker().schedule(() -> {
                 final CountDownLatch blocker = new CountDownLatch(1);
                 executeSubscription = completable
-                        //TODO think how to replace it
-                        .subscribeOn(Schedulers.newThread())
+                        .subscribeOn(executeScheduler)
                         .doOnUnsubscribe(blocker::countDown)
                         .subscribe(Actions.empty(), subscriber::onError, subscriber::onCompleted);
                 try {
