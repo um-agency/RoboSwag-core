@@ -34,6 +34,7 @@ public final class ProcessPriorityThreadFactory implements ThreadFactory {
 
     /**
      * threadPriority can be in a range from {@link Thread#MIN_PRIORITY} to {@link Thread#MAX_PRIORITY}
+     *
      * @param threadPriority priority for the Thread.
      */
     public ProcessPriorityThreadFactory(final int threadPriority) {

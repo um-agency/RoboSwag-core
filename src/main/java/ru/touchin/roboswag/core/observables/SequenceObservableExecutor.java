@@ -26,9 +26,6 @@ public class SequenceObservableExecutor {
 
     @NonNull
     private final Scheduler sendingScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
-    @NonNull
-    private final Scheduler executeScheduler = Schedulers.from(Executors.newSingleThreadExecutor(
-            new ProcessPriorityThreadFactory(Thread.MIN_PRIORITY)));
 
     @NonNull
     public Observable<?> execute(@NonNull final Observable<?> completable) {
@@ -56,7 +53,8 @@ public class SequenceObservableExecutor {
             scheduleSubscription = sendingScheduler.createWorker().schedule(() -> {
                 final CountDownLatch blocker = new CountDownLatch(1);
                 executeSubscription = completable
-                        .subscribeOn(executeScheduler)
+                        //TODO understand how to change this to a single thread
+                        .subscribeOn(Schedulers.from(Executors.newSingleThreadExecutor(new ProcessPriorityThreadFactory(Thread.MIN_PRIORITY))))
                         .doOnUnsubscribe(blocker::countDown)
                         .subscribe(Actions.empty(), subscriber::onError, subscriber::onCompleted);
                 try {
