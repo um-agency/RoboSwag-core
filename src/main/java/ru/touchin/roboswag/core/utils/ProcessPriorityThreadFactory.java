@@ -42,6 +42,7 @@ public final class ProcessPriorityThreadFactory implements ThreadFactory {
     }
 
     @Override
+    @NonNull
     public Thread newThread(@NonNull final Runnable runnable) {
         final Thread thread = new Thread(runnable);
         thread.setPriority(threadPriority);
