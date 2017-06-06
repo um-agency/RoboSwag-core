@@ -21,8 +21,6 @@ package ru.touchin.roboswag.core.utils;
 
 import android.support.annotation.NonNull;
 
-import rx.functions.Func0;
-
 /**
  * Created by Gavriil Sitnikov on 13/11/2015.
  * Thread local value with specified creator of value per thread.
@@ -30,24 +28,33 @@ import rx.functions.Func0;
 public class ThreadLocalValue<T> extends ThreadLocal<T> {
 
     @NonNull
-    private final Func0<T> creator;
+    private final Fabric<T> fabric;
 
-    public ThreadLocalValue(@NonNull final NonNullFunc<T> creator) {
+    public ThreadLocalValue(@NonNull final Fabric<T> fabric) {
         super();
-        this.creator = creator;
+        this.fabric = fabric;
     }
 
     @NonNull
     @Override
     protected T initialValue() {
-        return creator.call();
+        return fabric.create();
     }
 
-    public interface NonNullFunc<T> extends Func0<T> {
+    /**
+     * Fabric of thread-local objects.
+     *
+     * @param <T> Type of objects.
+     */
+    public interface Fabric<T> {
 
+        /**
+         * Creates object.
+         *
+         * @return new instance of object.
+         */
         @NonNull
-        @Override
-        T call();
+        T create();
 
     }
 

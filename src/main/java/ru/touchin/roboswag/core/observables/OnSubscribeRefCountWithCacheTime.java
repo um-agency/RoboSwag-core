@@ -28,7 +28,6 @@ import rx.Observable.OnSubscribe;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
-import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.observables.ConnectableObservable;
 import rx.schedulers.Schedulers;
@@ -114,19 +113,15 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
     @NonNull
     private Action1<Subscription> onSubscribe(@NonNull final Subscriber<? super T> subscriber,
                                               @NonNull final AtomicBoolean writeLocked) {
-        return new Action1<Subscription>() {
-            @Override
-            public void call(@NonNull final Subscription subscription) {
-
-                try {
-                    baseSubscription.add(subscription);
-                    // ready to subscribe to source so do it
-                    doSubscribe(subscriber, baseSubscription);
-                } finally {
-                    // release the write lock
-                    lock.unlock();
-                    writeLocked.set(false);
-                }
+        return subscription -> {
+            try {
+                baseSubscription.add(subscription);
+                // ready to subscribe to source so do it
+                doSubscribe(subscriber, baseSubscription);
+            } finally {
+                // release the write lock
+                lock.unlock();
+                writeLocked.set(false);
             }
         };
     }
@@ -152,14 +147,14 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
             }
 
             private void cleanup() {
-                // on error or completion we need to unsubscribe the base subscription
-                // and set the subscriptionCount to 0 
+                // on error or completion we need to unsubscribe the base subscription and set the subscriptionCount to 0
                 lock.lock();
                 try {
                     if (baseSubscription == currentBase) {
-                        if (worker != null) {
-                            worker.unsubscribe();
-                            worker = null;
+                        cleanupWorker();
+                        // backdoor into the ConnectableObservable to cleanup and reset its state
+                        if (source instanceof Subscription) {
+                            ((Subscription) source).unsubscribe();
                         }
                         baseSubscription.unsubscribe();
                         baseSubscription = new CompositeSubscription();
@@ -174,41 +169,45 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
 
     @NonNull
     private Subscription disconnect(@NonNull final CompositeSubscription current) {
-        return Subscriptions.create(new Action0() {
-
-            @Override
-            public void call() {
-                lock.lock();
-                try {
-                    if (baseSubscription == current && subscriptionCount.decrementAndGet() == 0) {
-                        if (worker != null) {
-                            worker.unsubscribe();
-                        } else {
-                            worker = scheduler.createWorker();
-                        }
-                        worker.schedule(new Action0() {
-                            @Override
-                            public void call() {
-                                lock.lock();
-                                try {
-                                    if (subscriptionCount.get() == 0) {
-                                        baseSubscription.unsubscribe();
-                                        // need a new baseSubscription because once
-                                        // unsubscribed stays that way
-                                        worker.unsubscribe();
-                                        worker = null;
-                                        baseSubscription = new CompositeSubscription();
-                                    }
-                                } finally {
-                                    lock.unlock();
-                                }
-                            }
-                        }, cacheTime, cacheTimeUnit);
+        return Subscriptions.create(() -> {
+            lock.lock();
+            try {
+                if (baseSubscription == current && subscriptionCount.decrementAndGet() == 0) {
+                    if (worker != null) {
+                        worker.unsubscribe();
+                    } else {
+                        worker = scheduler.createWorker();
                     }
-                } finally {
-                    lock.unlock();
+                    worker.schedule(() -> {
+                        lock.lock();
+                        try {
+                            if (subscriptionCount.get() == 0) {
+                                cleanupWorker();
+                                // backdoor into the ConnectableObservable to cleanup and reset its state
+                                if (source instanceof Subscription) {
+                                    ((Subscription) source).unsubscribe();
+                                }
+                                baseSubscription.unsubscribe();
+                                // need a new baseSubscription because once
+                                // unsubscribed stays that way
+                                baseSubscription = new CompositeSubscription();
+                            }
+                        } finally {
+                            lock.unlock();
+                        }
+                    }, cacheTime, cacheTimeUnit);
                 }
+            } finally {
+                lock.unlock();
             }
         });
     }
+
+    private void cleanupWorker() {
+        if (worker != null) {
+            worker.unsubscribe();
+            worker = null;
+        }
+    }
+
 }

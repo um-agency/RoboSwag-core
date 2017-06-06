@@ -81,9 +81,7 @@ public class NonNullPair<TFirst, TSecond> implements Serializable {
 
     @Override
     public int hashCode() {
-        int result = first.hashCode();
-        result = 31 * result + second.hashCode();
-        return result;
+        return ObjectUtils.hashCode(first, second);
     }
 
 }

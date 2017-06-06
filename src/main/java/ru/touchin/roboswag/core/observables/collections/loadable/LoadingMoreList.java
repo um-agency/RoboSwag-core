@@ -24,6 +24,7 @@ import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Executors;
@@ -46,6 +47,7 @@ import rx.subjects.BehaviorSubject;
  * {@link ObservableCollection} which is loading items more and more by paging/limit-offset/reference-based mechanisms.
  * To use this collection {@link MoreItemsLoader} should be created.
  * {@link MoreItemsLoader} is an object to load next block of items by info from previous loaded block (last loaded item/reference etc.).
+ * Use {@link #loadItem(int)} and {@link #loadRange(int, int)} to load items asynchronously.
  *
  * @param <TItem>          Type of collection's items;
  * @param <TMoreReference> Type of reference object to help rightly loading next block of items;
@@ -82,10 +84,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
                            @Nullable final LoadedItems<TItem, TMoreReference> initialItems) {
         super();
         this.loadingMoreObservable = Observable
-                .switchOnNext(Observable.<Observable<TLoadedItems>>create(subscriber -> {
-                    subscriber.onNext(createLoadRequestBasedObservable(this::createActualRequest, moreMoreItemsLoader::load));
-                    subscriber.onCompleted();
-                }))
+                .switchOnNext(Observable.fromCallable(() -> createLoadRequestBasedObservable(this::createActualRequest, moreMoreItemsLoader::load)))
                 .single()
                 .doOnError(throwable -> {
                     if (throwable instanceof IllegalArgumentException || throwable instanceof NoSuchElementException) {
@@ -287,23 +286,48 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         return loadingMoreObservable;
     }
 
+    /**
+     * Returns {@link Observable} which is loading item by position.
+     * It could return null in onNext callback if there is no item to load for such position.
+     *
+     * @param position Position to load item;
+     * @return {@link Observable} to load item.
+     */
     @NonNull
-    @Override
     public Observable<TItem> loadItem(final int position) {
         return Observable
                 .switchOnNext(Observable
-                        .<Observable<TItem>>create(subscriber -> {
+                        .fromCallable(() -> {
                             if (position < size()) {
-                                subscriber.onNext(Observable.just(get(position)));
+                                return Observable.just(get(position));
                             } else if (moreItemsCount.getValue() == 0) {
-                                subscriber.onNext(Observable.just((TItem) null));
+                                return Observable.just((TItem) null);
                             } else {
-                                subscriber.onNext(loadingMoreObservable.switchMap(ignored -> Observable.<TItem>error(new NotLoadedYetException())));
+                                return loadingMoreObservable.switchMap(ignored -> Observable.<TItem>error(new NotLoadedYetException()));
                             }
-                            subscriber.onCompleted();
                         })
                         .subscribeOn(loaderScheduler))
                 .retry((number, throwable) -> throwable instanceof NotLoadedYetException);
+    }
+
+    /**
+     * Returns {@link Observable} which is loading item by range.
+     * It will return collection of loaded items in onNext callback.
+     *
+     * @param first First position of item to load;
+     * @param last  Last position of item to load;
+     * @return {@link Observable} to load items.
+     */
+    @NonNull
+    public Observable<Collection<TItem>> loadRange(final int first, final int last) {
+        final List<Observable<TItem>> itemsRequests = new ArrayList<>();
+        for (int i = first; i <= last; i++) {
+            itemsRequests.add(loadItem(i));
+        }
+        return Observable.concatEager(itemsRequests)
+                .filter(loadedItem -> loadedItem != null)
+                .toList()
+                .map(Collections::unmodifiableCollection);
     }
 
     /**
@@ -335,7 +359,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         DO_NOTHING,
         REMOVE_FROM_COLLECTION,
         REMOVE_FROM_LOADED_ITEMS,
-        REPLACE_SOURCE_ITEM_WITH_LOADED,
+        REPLACE_SOURCE_ITEM_WITH_LOADED
     }
 
     /**
@@ -354,7 +378,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
          * @return Action to do with items.
          */
         @NonNull
-        FilterAction decideFilterAction(@NonNull final TItem collectionObject, @NonNull final TItem loadedItemsObject);
+        FilterAction decideFilterAction(@NonNull TItem collectionObject, @NonNull TItem loadedItemsObject);
 
     }
 

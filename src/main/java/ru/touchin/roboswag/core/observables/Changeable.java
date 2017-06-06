@@ -22,47 +22,19 @@ package ru.touchin.roboswag.core.observables;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-
-import ru.touchin.roboswag.core.utils.ObjectUtils;
+import ru.touchin.roboswag.core.utils.Optional;
 import rx.Observable;
-import rx.subjects.BehaviorSubject;
 
 /**
  * Created by Gavriil Sitnikov on 24/03/2016.
- * Wrapper over {@link BehaviorSubject} which could be serialized.
- * Such object is useful as view model and also as value in Android that could be passed into {@link android.os.Bundle}.
+ * Variant of {@link BaseChangeable} which is allows to set nullable values.
+ * Needed to separate non-null Changeable from nullable Changeable.
  */
-public class Changeable<T> implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    private transient BehaviorSubject<T> subject;
+//COMPATIBILITY NOTE: in RxJava2 it should extends BaseChangeable<T, Optional<T>>
+public class Changeable<T> extends BaseChangeable<T, T> {
 
     public Changeable(@Nullable final T defaultValue) {
-        subject = BehaviorSubject.create(defaultValue);
-    }
-
-    /**
-     * Sets current value.
-     *
-     * @param value Value to set.
-     */
-    public void set(@Nullable final T value) {
-        subject.onNext(value);
-    }
-
-    /**
-     * Returns current value.
-     *
-     * @return Current value.
-     */
-    @Nullable
-    public T get() {
-        return subject.getValue();
+        super(defaultValue);
     }
 
     /**
@@ -71,35 +43,10 @@ public class Changeable<T> implements Serializable {
      * @return Current value {@link Observable}.
      */
     @NonNull
+    @Override
+    //COMPATIBILITY NOTE: in RxJava2 it should be Observable<Optional<T>>
     public Observable<T> observe() {
-        return subject.distinctUntilChanged();
-    }
-
-    private void writeObject(@NonNull final ObjectOutputStream outputStream) throws IOException {
-        outputStream.writeObject(subject.getValue());
-    }
-
-    @SuppressWarnings("unchecked")
-    private void readObject(@NonNull final ObjectInputStream inputStream) throws IOException, ClassNotFoundException {
-        subject = BehaviorSubject.create((T) inputStream.readObject());
-    }
-
-    @Override
-    public boolean equals(@Nullable final Object object) {
-        if (this == object) {
-            return true;
-        }
-        if (object == null || getClass() != object.getClass()) {
-            return false;
-        }
-
-        final Changeable<?> that = (Changeable<?>) object;
-        return ObjectUtils.equals(subject.getValue(), that.subject.getValue());
-    }
-
-    @Override
-    public int hashCode() {
-        return subject.getValue() != null ? subject.getValue().hashCode() : 0;
+        return observeOptionalValue().map(Optional::get);
     }
 
 }

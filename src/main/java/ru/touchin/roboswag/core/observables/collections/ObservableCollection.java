@@ -25,25 +25,21 @@ import android.support.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
+import rx.Emitter;
 import rx.Observable;
-import rx.Subscriber;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
  * Class to represent collection which is providing it's inner changes in Rx observable way.
  * Use {@link #observeChanges()} and {@link #observeItems()} to observe collection changes.
- * Use {@link #loadItem(int)} to load item asynchronously.
  * Methods {@link #size()} and {@link #get(int)} will return only already loaded items info.
  *
  * @param <TItem> Type of collection's items.
  */
-public abstract class ObservableCollection<TItem> implements Serializable {
+public abstract class ObservableCollection<TItem> {
 
     private int changesCount;
     @NonNull
@@ -51,7 +47,7 @@ public abstract class ObservableCollection<TItem> implements Serializable {
     @NonNull
     private transient Observable<Collection<TItem>> itemsObservable;
     @Nullable
-    private transient Subscriber<? super CollectionChange<TItem>> changesSubscriber;
+    private transient Emitter<? super CollectionChange<TItem>> changesEmitter;
 
     public ObservableCollection() {
         this.changesObservable = createChangesObservable();
@@ -61,19 +57,16 @@ public abstract class ObservableCollection<TItem> implements Serializable {
     @NonNull
     private Observable<CollectionChange<TItem>> createChangesObservable() {
         return Observable
-                .<CollectionChange<TItem>>create(subscriber -> this.changesSubscriber = subscriber)
-                .doOnUnsubscribe(() -> this.changesSubscriber = null)
-                .replay(0)
-                .refCount();
+                .<CollectionChange<TItem>>create(emitter -> this.changesEmitter = emitter, Emitter.BackpressureMode.BUFFER)
+                .doOnUnsubscribe(() -> this.changesEmitter = null)
+                .share();
     }
 
     @NonNull
     private Observable<Collection<TItem>> createItemsObservable() {
         return Observable
-                .<Collection<TItem>>switchOnNext(Observable.create(subscriber -> {
-                    subscriber.onNext(observeChanges().map(changes -> getItems()).startWith(getItems()));
-                    subscriber.onCompleted();
-                }))
+                //switchOnNext to calculate getItems() on subscription but not on that method calling moment
+                .switchOnNext(Observable.fromCallable(() -> observeChanges().map(changes -> getItems()).startWith(getItems())))
                 .replay(1)
                 .refCount();
     }
@@ -102,9 +95,12 @@ public abstract class ObservableCollection<TItem> implements Serializable {
      * @param changes Changes of collection.
      */
     protected void notifyAboutChanges(@NonNull final Collection<Change<TItem>> changes) {
+        if (changes.isEmpty()) {
+            return;
+        }
         changesCount++;
-        if (changesSubscriber != null) {
-            changesSubscriber.onNext(new CollectionChange<>(changesCount, Collections.unmodifiableCollection(changes)));
+        if (changesEmitter != null) {
+            changesEmitter.onNext(new CollectionChange<>(changesCount, Collections.unmodifiableCollection(changes)));
         }
     }
 
@@ -162,36 +158,6 @@ public abstract class ObservableCollection<TItem> implements Serializable {
      */
     public boolean isEmpty() {
         return size() == 0;
-    }
-
-    /**
-     * Returns {@link Observable} which is loading item by position.
-     * It could return null in onNext callback if there is no item to load for such position.
-     *
-     * @param position Position to load item;
-     * @return {@link Observable} to load item.
-     */
-    @NonNull
-    public abstract Observable<TItem> loadItem(int position);
-
-    /**
-     * Returns {@link Observable} which is loading item by range.
-     * It will return collection of loaded items in onNext callback.
-     *
-     * @param first First position of item to load;
-     * @param last  Last position of item to load;
-     * @return {@link Observable} to load items.
-     */
-    @NonNull
-    public Observable<Collection<TItem>> loadRange(final int first, final int last) {
-        final List<Observable<TItem>> itemsRequests = new ArrayList<>();
-        for (int i = first; i <= last; i++) {
-            itemsRequests.add(loadItem(i));
-        }
-        return Observable.concatEager(itemsRequests)
-                .filter(loadedItem -> loadedItem != null)
-                .toList()
-                .map(Collections::unmodifiableCollection);
     }
 
     private void writeObject(@NonNull final ObjectOutputStream outputStream) throws IOException {

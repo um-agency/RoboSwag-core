@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 
 import ru.touchin.roboswag.core.log.Lc;
-import rx.Observable;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
@@ -218,9 +217,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
             final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(items, newItems, false);
             items.clear();
             items.addAll(newItems);
-            if (!changes.isEmpty()) {
-                notifyAboutChanges(changes);
-            }
+            notifyAboutChanges(changes);
         }
     }
 
@@ -240,14 +237,6 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
     public int indexOf(@NonNull final TItem item) {
         synchronized (this) {
             return items.indexOf(item);
-        }
-    }
-
-    @NonNull
-    @Override
-    public Observable<TItem> loadItem(final int position) {
-        synchronized (this) {
-            return position < items.size() ? Observable.just(items.get(position)) : Observable.just(null);
         }
     }
 

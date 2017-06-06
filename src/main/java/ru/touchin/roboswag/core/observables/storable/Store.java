@@ -24,6 +24,7 @@ import android.support.annotation.Nullable;
 
 import java.lang.reflect.Type;
 
+import ru.touchin.roboswag.core.utils.Optional;
 import rx.Completable;
 import rx.Single;
 
@@ -64,6 +65,6 @@ public interface Store<TKey, TStoreObject> {
      * @return Object from store found by key;
      */
     @NonNull
-    Single<TStoreObject> loadObject(@NonNull Type storeObjectType, @NonNull TKey key);
+    Single<Optional<TStoreObject>> loadObject(@NonNull Type storeObjectType, @NonNull TKey key);
 
 }

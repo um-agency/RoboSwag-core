@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015 RoboSwag (Gavriil Sitnikov, Vsevolod Ivanov)
+ *  Copyright (c) 2017 RoboSwag (Gavriil Sitnikov, Vsevolod Ivanov)
  *
  *  This file is part of RoboSwag library.
  *
@@ -19,33 +19,35 @@
 
 package ru.touchin.roboswag.core.utils;
 
-import android.app.Service;
-import android.os.Binder;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.io.Serializable;
+
 /**
- * Created by Gavriil Sitnikov on 03/10/2015.
- * Basic binding to {@link Service} which holds service object inside.
+ * Created by Gavriil Sitnikov on 16/04/2017.
+ * Holds nullable objects inside. It is needed to implement RxJava2 non-null emitting logic.
+ *
+ * @param <T> Type of object.
  */
-public class ServiceBinder<TService extends Service> extends Binder {
+public class Optional<T> implements Serializable {
 
-    @NonNull
-    private final TService service;
+    private static final long serialVersionUID = 1L;
 
-    public ServiceBinder(@NonNull final TService service) {
-        super();
-        this.service = service;
+    @Nullable
+    private final T value;
+
+    public Optional(@Nullable final T value) {
+        this.value = value;
     }
 
     /**
-     * Returns service which created this binder.
+     * Returns holding nullable object.
      *
-     * @return Returns service.
+     * @return Holding object.
      */
-    @NonNull
-    public TService getService() {
-        return service;
+    @Nullable
+    public T get() {
+        return value;
     }
 
     @Override
@@ -57,14 +59,13 @@ public class ServiceBinder<TService extends Service> extends Binder {
             return false;
         }
 
-        final ServiceBinder that = (ServiceBinder) object;
-
-        return ObjectUtils.equals(service, that.service);
+        final Optional<?> that = (Optional<?>) object;
+        return ObjectUtils.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return service.hashCode();
+        return value != null ? value.hashCode() : 0;
     }
 
 }

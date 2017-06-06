@@ -21,18 +21,22 @@ package ru.touchin.roboswag.core.observables;
 
 import android.support.annotation.NonNull;
 
+import ru.touchin.roboswag.core.log.Lc;
 import ru.touchin.roboswag.core.utils.ShouldNotHappenException;
+import rx.Observable;
 
 /**
  * Created by Gavriil Sitnikov on 24/03/2016.
- * Variant of {@link Changeable} which is allows to set only non-null values.
+ * Variant of {@link BaseChangeable} which is allows to set only non-null values.
+ * Needed to separate non-null Changeable from nullable Changeable.
  */
-public class NonNullChangeable<T> extends Changeable<T> {
-
-    private static final long serialVersionUID = 1L;
+public class NonNullChangeable<T> extends BaseChangeable<T, T> {
 
     public NonNullChangeable(@NonNull final T defaultValue) {
         super(defaultValue);
+        if (defaultValue == null) {
+            throw new ShouldNotHappenException();
+        }
     }
 
     @NonNull
@@ -45,11 +49,30 @@ public class NonNullChangeable<T> extends Changeable<T> {
         return value;
     }
 
-    @SuppressWarnings("PMD.UselessOverridingMethod")
-    // UselessOverridingMethod: we need only annotation change
     @Override
     public void set(@NonNull final T value) {
+        if (value == null) {
+            Lc.assertion("value is null");
+            return;
+        }
         super.set(value);
+    }
+
+    /**
+     * Returns {@link Observable} which is emits current value and then emitting changes of current value.
+     *
+     * @return Current value {@link Observable}.
+     */
+    @NonNull
+    @Override
+    public Observable<T> observe() {
+        return observeOptionalValue()
+                .map(optional -> {
+                    if (optional.get() == null) {
+                        throw new ShouldNotHappenException();
+                    }
+                    return optional.get();
+                });
     }
 
 }

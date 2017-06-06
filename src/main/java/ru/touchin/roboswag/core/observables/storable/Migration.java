@@ -58,7 +58,7 @@ public class Migration<TKey> {
     @NonNull
     private Single<Long> loadCurrentVersion(@NonNull final TKey key) {
         return versionsStore.loadObject(Long.class, key)
-                .map(version -> version != null ? version : DEFAULT_VERSION)
+                .map(version -> version.get() != null ? version.get() : DEFAULT_VERSION)
                 .onErrorResumeNext(throwable
                         -> Single.error(new MigrationException(String.format("Can't get version of '%s' from %s", key, versionsStore), throwable)));
     }
