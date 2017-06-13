@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
 
+import rx.Scheduler;
 import rx.Subscription;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
@@ -36,6 +38,9 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
         return result;
     }
 
+    // we need to filter on 1 thread to prevent parallel filtering
+    @NonNull
+    private final Scheduler filterScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
     @NonNull
     private List<TItem> filteredList;
     @NonNull
@@ -44,6 +49,10 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
     private Func1<TItem, Boolean> filter;
     @Nullable
     private Subscription sourceCollectionSubscription;
+
+    public ObservableFilteredList() {
+        this(new ArrayList<>(), null);
+    }
 
     public ObservableFilteredList(@NonNull final Func1<TItem, Boolean> filter) {
         this(new ArrayList<>(), filter);
@@ -58,7 +67,7 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
         this.filter = filter;
         this.sourceCollection = sourceCollection;
         this.filteredList = filterCollection(this.sourceCollection.getItems(), this.filter);
-        update();
+        updateInternal();
     }
 
     /**
@@ -68,7 +77,7 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
      */
     public void setSourceCollection(@Nullable final ObservableCollection<TItem> sourceCollection) {
         this.sourceCollection = sourceCollection != null ? sourceCollection : new ObservableList<>();
-        update();
+        updateInternal();
     }
 
     /**
@@ -78,7 +87,7 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
      */
     public void setSourceCollection(@Nullable final Collection<TItem> sourceCollection) {
         this.sourceCollection = sourceCollection != null ? new ObservableList<>(sourceCollection) : new ObservableList<>();
-        update();
+        updateInternal();
     }
 
     /**
@@ -88,24 +97,28 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
      */
     public void setFilter(@Nullable final Func1<TItem, Boolean> filter) {
         this.filter = filter;
-        update();
+        updateInternal();
     }
 
-    /**
-     * Updates collection by current filter. Use it if some item's parameter which is important for filtering have changing.
-     */
-    private void update() {
+    private void updateInternal() {
         if (sourceCollectionSubscription != null) {
             sourceCollectionSubscription.unsubscribe();
             sourceCollectionSubscription = null;
         }
         sourceCollectionSubscription = sourceCollection.observeItems()
-                .observeOn(Schedulers.computation())
+                .observeOn(filterScheduler)
                 .subscribe(items -> {
                     final List<TItem> oldFilteredList = filteredList;
                     filteredList = filterCollection(items, filter);
                     notifyAboutChanges(Change.calculateCollectionChanges(oldFilteredList, filteredList, false));
                 });
+    }
+
+    /**
+     * Updates collection by current filter. Use it if some item's parameter which is important for filtering have changing.
+     */
+    public void update() {
+        updateInternal();
     }
 
     @Override
