@@ -20,6 +20,7 @@
 package ru.touchin.roboswag.core.observables.collections;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -31,6 +32,11 @@ import java.util.Collections;
 import java.util.List;
 
 import ru.touchin.roboswag.core.log.Lc;
+import ru.touchin.roboswag.core.observables.collections.changes.Change;
+import ru.touchin.roboswag.core.observables.collections.changes.CollectionsChangesCalculator;
+import ru.touchin.roboswag.core.observables.collections.changes.DefaultCollectionsChangesCalculator;
+import ru.touchin.roboswag.core.observables.collections.changes.DiffCollectionsChangesCalculator;
+import ru.touchin.roboswag.core.observables.collections.changes.SameItemsPredicate;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
@@ -46,6 +52,8 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
 
     @NonNull
     private List<TItem> items;
+    @Nullable
+    private SameItemsPredicate<TItem> sameItemsPredicate;
 
     public ObservableList() {
         super();
@@ -75,7 +83,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
     public void add(final int position, @NonNull final TItem item) {
         synchronized (this) {
             items.add(position, item);
-            notifyAboutChange(new Change<>(Change.Type.INSERTED, Collections.singleton(item), position));
+            notifyAboutChange(new Change.Inserted(position, 1));
         }
     }
 
@@ -98,7 +106,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         synchronized (this) {
             if (!itemsToAdd.isEmpty()) {
                 items.addAll(position, itemsToAdd);
-                notifyAboutChange(new Change<>(Change.Type.INSERTED, itemsToAdd, position));
+                notifyAboutChange(new Change.Inserted(position, itemsToAdd.size()));
             }
         }
     }
@@ -139,12 +147,10 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
             return;
         }
         synchronized (this) {
-            final List<TItem> changedItems = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
-                changedItems.add(items.get(position));
                 items.remove(position);
             }
-            notifyAboutChange(new Change<>(Change.Type.REMOVED, changedItems, position));
+            notifyAboutChange(new Change.Removed(position, count));
         }
     }
 
@@ -153,10 +159,9 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
      */
     public void clear() {
         synchronized (this) {
-            final Change<TItem> change = new Change<>(Change.Type.REMOVED, items, 0);
-            if (!change.getChangedItems().isEmpty()) {
+            if (!items.isEmpty()) {
                 items.clear();
-                notifyAboutChange(change);
+                notifyAboutChange(new Change.Removed(0, items.size()));
             }
         }
     }
@@ -203,7 +208,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
                 items.set(index, item);
                 index++;
             }
-            notifyAboutChange(new Change<>(Change.Type.CHANGED, updatedItems, position));
+            notifyAboutChange(new Change.Changed(position, updatedItems.size(), null));
         }
     }
 
@@ -214,7 +219,10 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
      */
     public void set(@NonNull final Collection<TItem> newItems) {
         synchronized (this) {
-            final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(items, newItems, false);
+            final CollectionsChangesCalculator calculator = sameItemsPredicate != null
+                    ? new DiffCollectionsChangesCalculator<>(items, new ArrayList<>(newItems), sameItemsPredicate)
+                    : new DefaultCollectionsChangesCalculator<>(items, newItems, false);
+            final Collection<Change> changes = calculator.calculateChanges();
             items.clear();
             items.addAll(newItems);
             notifyAboutChanges(changes);
@@ -226,6 +234,15 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         synchronized (this) {
             return items.size();
         }
+    }
+
+    @Nullable
+    public SameItemsPredicate<TItem> getSameItemsPredicate() {
+        return sameItemsPredicate;
+    }
+
+    public void setSameItemsPredicate(@Nullable final SameItemsPredicate<TItem> sameItemsPredicate) {
+        this.sameItemsPredicate = sameItemsPredicate;
     }
 
     /**

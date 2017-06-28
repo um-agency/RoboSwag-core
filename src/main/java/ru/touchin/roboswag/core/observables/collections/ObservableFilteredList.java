@@ -14,6 +14,7 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import ru.touchin.roboswag.core.log.Lc;
+import ru.touchin.roboswag.core.observables.collections.changes.DefaultCollectionsChangesCalculator;
 
 /**
  * Created by Gavriil Sitnikov on 02/06/2016.
@@ -23,6 +24,9 @@ import ru.touchin.roboswag.core.log.Lc;
  * @param <TItem> Type of collection's items.
  */
 public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
+
+    // we need to filter on 1 thread to prevent parallel filtering
+    private static final Scheduler FILTER_SCHEDULER = Schedulers.from(Executors.newSingleThreadExecutor());
 
     @NonNull
     private static <TItem> List<TItem> filterCollection(@NonNull final Collection<TItem> sourceCollection,
@@ -43,9 +47,6 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
         return result;
     }
 
-    // we need to filter on 1 thread to prevent parallel filtering
-    @NonNull
-    private final Scheduler filterScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
     @NonNull
     private List<TItem> filteredList;
     @NonNull
@@ -111,11 +112,12 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
             sourceCollectionSubscription = null;
         }
         sourceCollectionSubscription = sourceCollection.observeItems()
-                .observeOn(filterScheduler)
+                .observeOn(FILTER_SCHEDULER)
                 .subscribe(items -> {
                     final List<TItem> oldFilteredList = filteredList;
                     filteredList = filterCollection(items, filter);
-                    notifyAboutChanges(Change.calculateCollectionChanges(oldFilteredList, filteredList, false));
+                    notifyAboutChanges(new DefaultCollectionsChangesCalculator<>(oldFilteredList, filteredList, false)
+                            .calculateChanges());
                 });
     }
 

@@ -30,6 +30,8 @@ import java.util.Collections;
 
 import io.reactivex.Emitter;
 import io.reactivex.Observable;
+import ru.touchin.roboswag.core.observables.collections.changes.Change;
+import ru.touchin.roboswag.core.observables.collections.changes.CollectionChange;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
@@ -85,7 +87,7 @@ public abstract class ObservableCollection<TItem> {
      *
      * @param change Change of collection.
      */
-    protected void notifyAboutChange(@NonNull final Change<TItem> change) {
+    protected void notifyAboutChange(@NonNull final Change change) {
         notifyAboutChanges(Collections.singleton(change));
     }
 
@@ -94,7 +96,7 @@ public abstract class ObservableCollection<TItem> {
      *
      * @param changes Changes of collection.
      */
-    protected void notifyAboutChanges(@NonNull final Collection<Change<TItem>> changes) {
+    protected void notifyAboutChanges(@NonNull final Collection<Change> changes) {
         if (changes.isEmpty()) {
             return;
         }
@@ -168,43 +170,6 @@ public abstract class ObservableCollection<TItem> {
         changesCount = inputStream.readInt();
         this.changesObservable = createChangesObservable();
         this.itemsObservable = createItemsObservable();
-    }
-
-    /**
-     * Class which is representing change of collection. There could be multiple changes applied to collection.
-     *
-     * @param <TItem> Type of collection's items.
-     */
-    public static class CollectionChange<TItem> {
-
-        private final int number;
-        @NonNull
-        private final Collection<Change<TItem>> changes;
-
-        protected CollectionChange(final int number, @NonNull final Collection<Change<TItem>> changes) {
-            this.number = number;
-            this.changes = changes;
-        }
-
-        /**
-         * Returns number of change.
-         *
-         * @return Number of change.
-         */
-        public int getNumber() {
-            return number;
-        }
-
-        /**
-         * Returns collection of changes.
-         *
-         * @return Collection of changes.
-         */
-        @NonNull
-        public Collection<Change<TItem>> getChanges() {
-            return changes;
-        }
-
     }
 
 }
