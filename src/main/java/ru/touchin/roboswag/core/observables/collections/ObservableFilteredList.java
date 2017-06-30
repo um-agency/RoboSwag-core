@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 
+import ru.touchin.roboswag.core.observables.collections.changes.DefaultCollectionsChangesCalculator;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.functions.Func1;
@@ -22,6 +23,9 @@ import rx.schedulers.Schedulers;
  * @param <TItem> Type of collection's items.
  */
 public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
+
+    // we need to filter on 1 thread to prevent parallel filtering
+    private static final Scheduler FILTER_SCHEDULER = Schedulers.from(Executors.newSingleThreadExecutor());
 
     @NonNull
     private static <TItem> List<TItem> filterCollection(@NonNull final Collection<TItem> sourceCollection,
@@ -38,9 +42,6 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
         return result;
     }
 
-    // we need to filter on 1 thread to prevent parallel filtering
-    @NonNull
-    private final Scheduler filterScheduler = Schedulers.from(Executors.newSingleThreadExecutor());
     @NonNull
     private List<TItem> filteredList;
     @NonNull
@@ -106,11 +107,13 @@ public class ObservableFilteredList<TItem> extends ObservableCollection<TItem> {
             sourceCollectionSubscription = null;
         }
         sourceCollectionSubscription = sourceCollection.observeItems()
-                .observeOn(filterScheduler)
+                .observeOn(FILTER_SCHEDULER)
                 .subscribe(items -> {
                     final List<TItem> oldFilteredList = filteredList;
                     filteredList = filterCollection(items, filter);
-                    notifyAboutChanges(Change.calculateCollectionChanges(oldFilteredList, filteredList, false));
+                    final DefaultCollectionsChangesCalculator<TItem> calculator
+                            = new DefaultCollectionsChangesCalculator<>(oldFilteredList, filteredList, false);
+                    notifyAboutChanges(calculator.calculateInsertedItems(), calculator.calculateRemovedItems(), calculator.calculateChanges());
                 });
     }
 
