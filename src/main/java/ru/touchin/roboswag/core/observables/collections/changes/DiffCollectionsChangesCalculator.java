@@ -28,6 +28,9 @@ import java.util.List;
 import ru.touchin.roboswag.core.android.support.v7.util.DiffUtil;
 import ru.touchin.roboswag.core.android.support.v7.util.ListUpdateCallback;
 
+/**
+ * Implementation of {@link CollectionsChangesCalculator} based on DiffUtils from support library.
+ */
 public class DiffCollectionsChangesCalculator<TItem> extends DiffUtil.Callback implements CollectionsChangesCalculator<TItem> {
 
     @NonNull

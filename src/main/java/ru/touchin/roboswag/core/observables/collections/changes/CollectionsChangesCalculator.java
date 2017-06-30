@@ -23,14 +23,32 @@ import android.support.annotation.NonNull;
 
 import java.util.List;
 
+/**
+ * Interface that represent changes calculator between two collections.
+ */
 public interface CollectionsChangesCalculator<TItem> {
 
+    /**
+     * Calculate changes between two collection as collection of objects {@link Change}.
+     *
+     * @return List of changes.
+     */
     @NonNull
     List<Change> calculateChanges();
 
+    /**
+     * Calculate changes between two collection as collection of inserted items.
+     *
+     * @return List of inserted item.
+     */
     @NonNull
     List<TItem> calculateInsertedItems();
 
+    /**
+     * Calculate changes between two collection as collection of removed items.
+     *
+     * @return List of removed item.
+     */
     @NonNull
     List<TItem> calculateRemovedItems();
 

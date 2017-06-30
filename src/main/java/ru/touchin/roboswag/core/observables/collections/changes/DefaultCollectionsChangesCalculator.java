@@ -25,6 +25,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Default calculator between two collections that use equals function.
+ */
 public class DefaultCollectionsChangesCalculator<TItem> implements CollectionsChangesCalculator<TItem> {
 
     @NonNull

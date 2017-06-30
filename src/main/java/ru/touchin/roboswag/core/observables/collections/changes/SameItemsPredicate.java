@@ -21,8 +21,20 @@ package ru.touchin.roboswag.core.observables.collections.changes;
 
 import android.support.annotation.NonNull;
 
+/**
+ * Functional interface for determine same objects. Usually this is just the comparison by id.
+ *
+ * @param <TItem> Type of objects
+ */
 public interface SameItemsPredicate<TItem> {
 
+    /**
+     * Function for determine same objects.
+     *
+     * @param item1 First object;
+     * @param item2 Second object;
+     * @return True if items are same.
+     */
     boolean areSame(@NonNull TItem item1, @NonNull TItem item2);
 
 }

@@ -22,8 +22,20 @@ package ru.touchin.roboswag.core.observables.collections.changes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+/**
+ * Functional interface for calculating change payload between two items same type.
+ * Payload calculating when items are same {@link SameItemsPredicate}, but content different.
+ */
 public interface ChangePayloadProducer<TItem> {
 
+
+    /**
+     * Calculate change payload between two items.
+     *
+     * @param item1 First item;
+     * @param item2 Second item;
+     * @return Object that represents minimal changes between two items.
+     */
     @Nullable
     Object getChangePayload(@NonNull TItem item1, @NonNull TItem item2);
 
