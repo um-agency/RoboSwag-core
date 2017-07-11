@@ -36,9 +36,10 @@ import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.BehaviorSubject;
 import ru.touchin.roboswag.core.log.Lc;
-import ru.touchin.roboswag.core.observables.collections.Change;
 import ru.touchin.roboswag.core.observables.collections.ObservableCollection;
 import ru.touchin.roboswag.core.observables.collections.ObservableList;
+import ru.touchin.roboswag.core.observables.collections.changes.Change;
+import ru.touchin.roboswag.core.observables.collections.changes.CollectionChanges;
 import ru.touchin.roboswag.core.utils.Optional;
 
 /**
@@ -128,12 +129,14 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
 
     @NonNull
     @Override
-    public Observable<CollectionChange<TItem>> observeChanges() {
+    public Observable<CollectionChanges<TItem>> observeChanges() {
         return innerList.observeChanges();
     }
 
     @Override
-    protected void notifyAboutChanges(@NonNull final Collection<Change<TItem>> changes) {
+    protected void notifyAboutChanges(@NonNull final List<TItem> insertedItems,
+                                      @NonNull final List<TItem> removedItems,
+                                      @NonNull final Collection<Change> changes) {
         Lc.assertion("Illegal operation. Modify getInnerList()");
     }
 

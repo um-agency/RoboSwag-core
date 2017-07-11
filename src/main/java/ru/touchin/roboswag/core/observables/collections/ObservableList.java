@@ -20,6 +20,7 @@
 package ru.touchin.roboswag.core.observables.collections;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -31,6 +32,12 @@ import java.util.Collections;
 import java.util.List;
 
 import ru.touchin.roboswag.core.log.Lc;
+import ru.touchin.roboswag.core.observables.collections.changes.Change;
+import ru.touchin.roboswag.core.observables.collections.changes.ChangePayloadProducer;
+import ru.touchin.roboswag.core.observables.collections.changes.CollectionsChangesCalculator;
+import ru.touchin.roboswag.core.observables.collections.changes.DefaultCollectionsChangesCalculator;
+import ru.touchin.roboswag.core.observables.collections.changes.DiffCollectionsChangesCalculator;
+import ru.touchin.roboswag.core.observables.collections.changes.SameItemsPredicate;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.
@@ -46,6 +53,11 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
 
     @NonNull
     private List<TItem> items;
+    private boolean detectMoves;
+    @Nullable
+    private SameItemsPredicate<TItem> sameItemsPredicate;
+    @Nullable
+    private ChangePayloadProducer<TItem> changePayloadProducer;
 
     public ObservableList() {
         super();
@@ -75,7 +87,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
     public void add(final int position, @NonNull final TItem item) {
         synchronized (this) {
             items.add(position, item);
-            notifyAboutChange(new Change<>(Change.Type.INSERTED, Collections.singleton(item), position));
+            notifyAboutChange(Collections.singletonList(item), Collections.emptyList(), new Change.Inserted(position, 1));
         }
     }
 
@@ -98,7 +110,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         synchronized (this) {
             if (!itemsToAdd.isEmpty()) {
                 items.addAll(position, itemsToAdd);
-                notifyAboutChange(new Change<>(Change.Type.INSERTED, itemsToAdd, position));
+                notifyAboutChange(new ArrayList<>(itemsToAdd), Collections.emptyList(), new Change.Inserted(position, itemsToAdd.size()));
             }
         }
     }
@@ -139,12 +151,11 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
             return;
         }
         synchronized (this) {
-            final List<TItem> changedItems = new ArrayList<>(count);
+            final List<TItem> removedItems = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
-                changedItems.add(items.get(position));
-                items.remove(position);
+                removedItems.add(items.remove(position));
             }
-            notifyAboutChange(new Change<>(Change.Type.REMOVED, changedItems, position));
+            notifyAboutChange(Collections.emptyList(), removedItems, new Change.Removed(position, count));
         }
     }
 
@@ -153,10 +164,10 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
      */
     public void clear() {
         synchronized (this) {
-            final Change<TItem> change = new Change<>(Change.Type.REMOVED, items, 0);
-            if (!change.getChangedItems().isEmpty()) {
+            if (!items.isEmpty()) {
+                final List<TItem> removedItems = new ArrayList<>(items);
                 items.clear();
-                notifyAboutChange(change);
+                notifyAboutChange(Collections.emptyList(), removedItems, new Change.Removed(0, removedItems.size()));
             }
         }
     }
@@ -203,7 +214,7 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
                 items.set(index, item);
                 index++;
             }
-            notifyAboutChange(new Change<>(Change.Type.CHANGED, updatedItems, position));
+            notifyAboutChange(Collections.emptyList(), Collections.emptyList(), new Change.Changed(position, updatedItems.size(), null));
         }
     }
 
@@ -214,10 +225,14 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
      */
     public void set(@NonNull final Collection<TItem> newItems) {
         synchronized (this) {
-            final Collection<Change<TItem>> changes = Change.calculateCollectionChanges(items, newItems, false);
+            final List<TItem> oldList = new ArrayList<>(items);
+            final List<TItem> newList = new ArrayList<>(newItems);
+            final CollectionsChangesCalculator<TItem> calculator = sameItemsPredicate != null
+                    ? new DiffCollectionsChangesCalculator<>(oldList, newList, detectMoves, sameItemsPredicate, changePayloadProducer)
+                    : new DefaultCollectionsChangesCalculator<>(oldList, newList, false);
             items.clear();
             items.addAll(newItems);
-            notifyAboutChanges(changes);
+            notifyAboutChanges(calculator.calculateInsertedItems(), calculator.calculateRemovedItems(), calculator.calculateChanges());
         }
     }
 
@@ -226,6 +241,37 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         synchronized (this) {
             return items.size();
         }
+    }
+
+    /**
+     * Enable diff utils algorithm in collection changes.
+     *
+     * @param detectMoves The flag that determines whether the {@link Change.Moved} changes will be generated or not;
+     * @param sameItemsPredicate Predicate for the determination of the same elements;
+     * @param changePayloadProducer Function that calculate change payload when items the same but contents are different.
+     */
+    public void enableDiffUtils(final boolean detectMoves,
+                                @NonNull final SameItemsPredicate<TItem> sameItemsPredicate,
+                                @Nullable final ChangePayloadProducer<TItem> changePayloadProducer) {
+        this.detectMoves = detectMoves;
+        this.sameItemsPredicate = sameItemsPredicate;
+        this.changePayloadProducer = changePayloadProducer;
+    }
+
+    /**
+     * Disable diff utils algorithm.
+     */
+    public void disableDiffUtils() {
+        this.sameItemsPredicate = null;
+    }
+
+    /**
+     * Returns enabled flag of diff utils.
+     *
+     * @return true if diff utils is enabled.
+     */
+    public boolean diffUtilsIsEnabled() {
+        return sameItemsPredicate != null;
     }
 
     /**

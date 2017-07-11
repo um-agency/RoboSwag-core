@@ -27,7 +27,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
+import ru.touchin.roboswag.core.observables.collections.changes.Change;
+import ru.touchin.roboswag.core.observables.collections.changes.CollectionChanges;
 import io.reactivex.Emitter;
 import io.reactivex.Observable;
 
@@ -43,11 +46,11 @@ public abstract class ObservableCollection<TItem> {
 
     private int changesCount;
     @NonNull
-    private transient Observable<CollectionChange<TItem>> changesObservable;
+    private transient Observable<CollectionChanges<TItem>> changesObservable;
     @NonNull
     private transient Observable<Collection<TItem>> itemsObservable;
     @Nullable
-    private transient Emitter<? super CollectionChange<TItem>> changesEmitter;
+    private transient Emitter<? super CollectionChanges<TItem>> changesEmitter;
 
     public ObservableCollection() {
         this.changesObservable = createChangesObservable();
@@ -55,9 +58,9 @@ public abstract class ObservableCollection<TItem> {
     }
 
     @NonNull
-    private Observable<CollectionChange<TItem>> createChangesObservable() {
+    private Observable<CollectionChanges<TItem>> createChangesObservable() {
         return Observable
-                .<CollectionChange<TItem>>create(emitter -> this.changesEmitter = emitter)
+                .<CollectionChanges<TItem>>create(emitter -> this.changesEmitter = emitter)
                 .doOnDispose(() -> this.changesEmitter = null)
                 .share();
     }
@@ -85,22 +88,28 @@ public abstract class ObservableCollection<TItem> {
      *
      * @param change Change of collection.
      */
-    protected void notifyAboutChange(@NonNull final Change<TItem> change) {
-        notifyAboutChanges(Collections.singleton(change));
+    protected void notifyAboutChange(@NonNull final List<TItem> insertedItems,
+                                     @NonNull final List<TItem> removedItems,
+                                     @NonNull final Change change) {
+        notifyAboutChanges(insertedItems, removedItems, Collections.singleton(change));
     }
 
     /**
      * Method to notify that collection have changed.
      *
+     * @param insertedItems Collection of inserted items;
+     * @param removedItems Collection of removed items;
      * @param changes Changes of collection.
      */
-    protected void notifyAboutChanges(@NonNull final Collection<Change<TItem>> changes) {
+    protected void notifyAboutChanges(@NonNull final List<TItem> insertedItems,
+                                      @NonNull final List<TItem> removedItems,
+                                      @NonNull final Collection<Change> changes) {
         if (changes.isEmpty()) {
             return;
         }
         changesCount++;
         if (changesEmitter != null) {
-            changesEmitter.onNext(new CollectionChange<>(changesCount, Collections.unmodifiableCollection(changes)));
+            changesEmitter.onNext(new CollectionChanges<>(changesCount, insertedItems, removedItems, changes));
         }
     }
 
@@ -110,7 +119,7 @@ public abstract class ObservableCollection<TItem> {
      * @return List of changes applied to collection.
      */
     @NonNull
-    public Observable<CollectionChange<TItem>> observeChanges() {
+    public Observable<CollectionChanges<TItem>> observeChanges() {
         return changesObservable;
     }
 
@@ -168,43 +177,6 @@ public abstract class ObservableCollection<TItem> {
         changesCount = inputStream.readInt();
         this.changesObservable = createChangesObservable();
         this.itemsObservable = createItemsObservable();
-    }
-
-    /**
-     * Class which is representing change of collection. There could be multiple changes applied to collection.
-     *
-     * @param <TItem> Type of collection's items.
-     */
-    public static class CollectionChange<TItem> {
-
-        private final int number;
-        @NonNull
-        private final Collection<Change<TItem>> changes;
-
-        protected CollectionChange(final int number, @NonNull final Collection<Change<TItem>> changes) {
-            this.number = number;
-            this.changes = changes;
-        }
-
-        /**
-         * Returns number of change.
-         *
-         * @return Number of change.
-         */
-        public int getNumber() {
-            return number;
-        }
-
-        /**
-         * Returns collection of changes.
-         *
-         * @return Collection of changes.
-         */
-        @NonNull
-        public Collection<Change<TItem>> getChanges() {
-            return changes;
-        }
-
     }
 
 }
