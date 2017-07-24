@@ -32,7 +32,7 @@ import ru.touchin.roboswag.core.utils.ObjectUtils;
  * Both arguments are not null.
  * Note that if you want to save this pair in state, you need make TFirst and TSecond Serializable too.
  *
- * @param <TFirst> type of the first nonnull argument.
+ * @param <TFirst>  type of the first nonnull argument.
  * @param <TSecond> type of the second nonnull argument.
  */
 public class NonNullPair<TFirst, TSecond> implements Serializable {

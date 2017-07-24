@@ -38,7 +38,7 @@ public interface Converter<TObject, TStoreObject> {
      *
      * @param objectType      Type of object;
      * @param storeObjectType Type of store object allowed to store;
-     * @param object           Object to be converted to store object;
+     * @param object          Object to be converted to store object;
      * @return Object that is allowed to store into specific {@link Store};
      * @throws ConversionException Exception during conversion. Usually it indicates illegal state.
      */
@@ -51,7 +51,7 @@ public interface Converter<TObject, TStoreObject> {
      *
      * @param objectType      Type of object;
      * @param storeObjectType Type of store object allowed to store;
-     * @param storeObject      Object from specific {@link Store};
+     * @param storeObject     Object from specific {@link Store};
      * @return Object converted from store object;
      * @throws ConversionException Exception during conversion. Usually it indicates illegal state.
      */
