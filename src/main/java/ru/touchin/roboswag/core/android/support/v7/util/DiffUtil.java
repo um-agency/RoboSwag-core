@@ -50,13 +50,13 @@ import java.util.List;
  * and the cost of your comparison methods. Below are some average run times for reference:
  * (The areSame list is composed of random UUID Strings and the tests are run on Nexus 5X with M)
  * <ul>
- *     <li>100 items and 10 modifications: avg: 0.39 ms, median: 0.35 ms
- *     <li>100 items and 100 modifications: 3.82 ms, median: 3.75 ms
- *     <li>100 items and 100 modifications without moves: 2.09 ms, median: 2.06 ms
- *     <li>1000 items and 50 modifications: avg: 4.67 ms, median: 4.59 ms
- *     <li>1000 items and 50 modifications without moves: avg: 3.59 ms, median: 3.50 ms
- *     <li>1000 items and 200 modifications: 27.07 ms, median: 26.92 ms
- *     <li>1000 items and 200 modifications without moves: 13.54 ms, median: 13.36 ms
+ * <li>100 items and 10 modifications: avg: 0.39 ms, median: 0.35 ms
+ * <li>100 items and 100 modifications: 3.82 ms, median: 3.75 ms
+ * <li>100 items and 100 modifications without moves: 2.09 ms, median: 2.06 ms
+ * <li>1000 items and 50 modifications: avg: 4.67 ms, median: 4.59 ms
+ * <li>1000 items and 50 modifications without moves: avg: 3.59 ms, median: 3.50 ms
+ * <li>1000 items and 200 modifications: 27.07 ms, median: 26.92 ms
+ * <li>1000 items and 200 modifications without moves: 13.54 ms, median: 13.36 ms
  * </ul>
  *
  * <p>Due to implementation constraints, the max size of the list can be 2^26.
@@ -83,7 +83,6 @@ public class DiffUtil {
      * Calculates the list of update operations that can covert one list into the other one.
      *
      * @param cb The callback that acts as a gateway to the backing list data
-     *
      * @return A DiffResult that contains the information about the edit sequence to convert the
      * old list into the new list.
      */
@@ -98,9 +97,8 @@ public class DiffUtil {
      * positions), you can disable move detection which takes <code>O(N^2)</code> time where
      * N is the number of added, moved, removed items.
      *
-     * @param cb The callback that acts as a gateway to the backing list data
+     * @param cb          The callback that acts as a gateway to the backing list data
      * @param detectMoves True if DiffUtil should try to detect moved items, false otherwise.
-     *
      * @return A DiffResult that contains the information about the edit sequence to convert the
      * old list into the new list.
      */
@@ -185,7 +183,7 @@ public class DiffUtil {
     }
 
     private static Snake diffPartial(Callback cb, int startOld, int endOld,
-            int startNew, int endNew, int[] forward, int[] backward, int kOffset) {
+                                     int startNew, int endNew, int[] forward, int[] backward, int kOffset) {
         final int oldSize = endOld - startOld;
         final int newSize = endNew - startNew;
 
@@ -329,7 +327,6 @@ public class DiffUtil {
          *
          * @param oldItemPosition The position of the item in the old list
          * @param newItemPosition The position of the item in the new list
-         *
          * @return A payload object that represents the change between the two items.
          */
         @Nullable
@@ -453,14 +450,14 @@ public class DiffUtil {
         private final boolean mDetectMoves;
 
         /**
-         * @param callback The callback that was used to calculate the diff
-         * @param snakes The list of Myers' snakes
+         * @param callback        The callback that was used to calculate the diff
+         * @param snakes          The list of Myers' snakes
          * @param oldItemStatuses An int[] that can be re-purposed to keep metadata
          * @param newItemStatuses An int[] that can be re-purposed to keep metadata
-         * @param detectMoves True if this DiffResult will try to detect moved items
+         * @param detectMoves     True if this DiffResult will try to detect moved items
          */
         DiffResult(Callback callback, List<Snake> snakes, int[] oldItemStatuses,
-                int[] newItemStatuses, boolean detectMoves) {
+                   int[] newItemStatuses, boolean detectMoves) {
             mSnakes = snakes;
             mOldItemStatuses = oldItemStatuses;
             mNewItemStatuses = newItemStatuses;
@@ -556,15 +553,14 @@ public class DiffUtil {
          * Finds a matching item that is before the given coordinates in the matrix
          * (before : left and above).
          *
-         * @param x The x position in the matrix (position in the old list)
-         * @param y The y position in the matrix (position in the new list)
+         * @param x          The x position in the matrix (position in the old list)
+         * @param y          The y position in the matrix (position in the new list)
          * @param snakeIndex The current snake index
-         * @param removal True if we are looking for a removal, false otherwise
-         *
+         * @param removal    True if we are looking for a removal, false otherwise
          * @return True if such item is found.
          */
         private boolean findMatchingItem(final int x, final int y, final int snakeIndex,
-                final boolean removal) {
+                                         final boolean removal) {
             final int myItemPos;
             int curX;
             int curY;
@@ -664,7 +660,7 @@ public class DiffUtil {
         }
 
         private static PostponedUpdate removePostponedUpdate(List<PostponedUpdate> updates,
-                int pos, boolean removal) {
+                                                             int pos, boolean removal) {
             for (int i = updates.size() - 1; i >= 0; i--) {
                 final PostponedUpdate update = updates.get(i);
                 if (update.posInOwnerList == pos && update.removal == removal) {
@@ -680,7 +676,7 @@ public class DiffUtil {
         }
 
         private void dispatchAdditions(List<PostponedUpdate> postponedUpdates,
-                ListUpdateCallback updateCallback, int start, int count, int globalIndex) {
+                                       ListUpdateCallback updateCallback, int start, int count, int globalIndex) {
             if (!mDetectMoves) {
                 updateCallback.onInserted(start, count);
                 return;
@@ -720,7 +716,7 @@ public class DiffUtil {
         }
 
         private void dispatchRemovals(List<PostponedUpdate> postponedUpdates,
-                ListUpdateCallback updateCallback, int start, int count, int globalIndex) {
+                                      ListUpdateCallback updateCallback, int start, int count, int globalIndex) {
             if (!mDetectMoves) {
                 updateCallback.onRemoved(start, count);
                 return;
