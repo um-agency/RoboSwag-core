@@ -98,8 +98,8 @@ public abstract class ObservableCollection<TItem> {
      * Method to notify that collection have changed.
      *
      * @param insertedItems Collection of inserted items;
-     * @param removedItems Collection of removed items;
-     * @param changes Changes of collection.
+     * @param removedItems  Collection of removed items;
+     * @param changes       Changes of collection.
      */
     protected void notifyAboutChanges(@NonNull final List<TItem> insertedItems,
                                       @NonNull final List<TItem> removedItems,
