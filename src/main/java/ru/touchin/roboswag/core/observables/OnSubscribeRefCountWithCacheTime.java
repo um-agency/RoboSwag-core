@@ -131,6 +131,7 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
         };
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     private void doSubscribe(@NonNull final Subscriber<? super T> subscriber, @NonNull final CompositeSubscription currentBase) {
         subscriber.add(disconnect(currentBase));
         source.unsafeSubscribe(new Subscriber<T>(subscriber) {
@@ -176,6 +177,7 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
         });
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     @NonNull
     private Subscription disconnect(@NonNull final CompositeSubscription current) {
         return Subscriptions.create(new Action0() {
