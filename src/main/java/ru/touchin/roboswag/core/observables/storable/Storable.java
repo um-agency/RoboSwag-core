@@ -23,7 +23,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import java.lang.reflect.Type;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import ru.touchin.roboswag.core.log.Lc;
@@ -115,7 +114,7 @@ public class Storable<TKey, TObject, TStoreObject> {
 
         final ObserveStrategy nonNullObserveStrategy
                 = observeStrategy != null ? observeStrategy : getDefaultObserveStrategyFor(objectType, storeObjectType);
-        scheduler = storeScheduler != null ? storeScheduler : Schedulers.from(Executors.newSingleThreadExecutor());
+        scheduler = storeScheduler != null ? storeScheduler : Schedulers.computation();
         storeValueObservable
                 = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue, cacheTimeMillis);
         valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy, cacheTimeMillis);
