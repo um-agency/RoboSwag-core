@@ -59,7 +59,7 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
     @NonNull
     private final TimeUnit cacheTimeUnit;
     @Nullable
-    private Scheduler.Worker worker;
+    private volatile Scheduler.Worker worker;
 
     /**
      * Use this lock for every subscription and disconnect action.
@@ -153,13 +153,17 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
 
             private void cleanup() {
                 // on error or completion we need to unsubscribe the base subscription
-                // and set the subscriptionCount to 0 
+                // and set the subscriptionCount to 0
                 lock.lock();
                 try {
                     if (baseSubscription == currentBase) {
                         if (worker != null) {
                             worker.unsubscribe();
                             worker = null;
+                        }
+                        // backdoor into the ConnectableObservable to cleanup and reset its state
+                        if (source instanceof Subscription) {
+                            ((Subscription) source).unsubscribe();
                         }
                         baseSubscription.unsubscribe();
                         baseSubscription = new CompositeSubscription();
@@ -192,11 +196,17 @@ public final class OnSubscribeRefCountWithCacheTime<T> implements OnSubscribe<T>
                                 lock.lock();
                                 try {
                                     if (subscriptionCount.get() == 0) {
+                                        if (worker != null) {
+                                            worker.unsubscribe();
+                                            worker = null;
+                                        }
+                                        // backdoor into the ConnectableObservable to cleanup and reset its state
+                                        if (source instanceof Subscription) {
+                                            ((Subscription) source).unsubscribe();
+                                        }
                                         baseSubscription.unsubscribe();
                                         // need a new baseSubscription because once
                                         // unsubscribed stays that way
-                                        worker.unsubscribe();
-                                        worker = null;
                                         baseSubscription = new CompositeSubscription();
                                     }
                                 } finally {
