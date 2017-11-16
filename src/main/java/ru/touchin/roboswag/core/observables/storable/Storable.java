@@ -36,7 +36,6 @@ import rx.Scheduler;
 import rx.Single;
 import rx.exceptions.OnErrorThrowable;
 import rx.functions.Actions;
-import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
 /**
@@ -114,7 +113,7 @@ public class Storable<TKey, TObject, TStoreObject> {
 
         final ObserveStrategy nonNullObserveStrategy
                 = observeStrategy != null ? observeStrategy : getDefaultObserveStrategyFor(objectType, storeObjectType);
-        scheduler = storeScheduler != null ? storeScheduler : Schedulers.computation();
+        scheduler = storeScheduler != null ? storeScheduler : StorableThreadPool.getInstance().getScheduler();
         storeValueObservable
                 = createStoreValueObservable(nonNullObserveStrategy, migration, defaultValue, cacheTimeMillis);
         valueObservable = createValueObservable(storeValueObservable, nonNullObserveStrategy, cacheTimeMillis);
