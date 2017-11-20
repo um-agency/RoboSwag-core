@@ -18,13 +18,13 @@ public final class StorableThreadPool {
     private static final int POOL = 4;
 
     @NonNull
-    private static final StorableThreadPool instance = new StorableThreadPool();
+    private static final StorableThreadPool INSTANCE = new StorableThreadPool();
     @NonNull
-    private static final Random random = new Random();
+    private static final Random RANDOM = new Random();
 
     @NonNull
     public static StorableThreadPool getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     @NonNull
@@ -40,8 +40,8 @@ public final class StorableThreadPool {
 
     @NonNull
     public Scheduler getScheduler() {
-        synchronized (random) {
-            return schedulers.get(random.nextInt(schedulers.size()));
+        synchronized (RANDOM) {
+            return schedulers.get(RANDOM.nextInt(schedulers.size()));
         }
     }
 }
