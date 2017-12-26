@@ -115,7 +115,8 @@ public class Change<TItem> {
     public enum Type {
         INSERTED,
         CHANGED,
-        REMOVED
+        REMOVED,
+        MOVED
     }
 
     private static class CollectionsChangesCalculator<TItem> {

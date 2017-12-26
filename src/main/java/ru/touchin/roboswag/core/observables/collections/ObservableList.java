@@ -224,6 +224,15 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
         }
     }
 
+    public void swap(final int firstPosition, final int secondPosition) {
+        synchronized (this) {
+            final TItem item = items.get(firstPosition);
+            items.set(firstPosition, items.get(secondPosition));
+            items.set(secondPosition, item);
+            notifyAboutChange(new Change<>(Change.Type.MOVED, Collections.nCopies(secondPosition, item), Math.min(firstPosition, secondPosition)));
+        }
+    }
+
     @Override
     public int size() {
         synchronized (this) {
