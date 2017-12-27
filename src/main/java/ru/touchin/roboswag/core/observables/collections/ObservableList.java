@@ -225,11 +225,16 @@ public class ObservableList<TItem> extends ObservableCollection<TItem> implement
     }
 
     public void swap(final int firstPosition, final int secondPosition) {
+        if (firstPosition == secondPosition) {
+            return;
+        }
+        final int upPosition = Math.min(firstPosition, secondPosition);
+        final int downPosition = Math.max(firstPosition, secondPosition);
         synchronized (this) {
-            final TItem item = items.get(firstPosition);
-            items.set(firstPosition, items.get(secondPosition));
-            items.set(secondPosition, item);
-            notifyAboutChange(new Change<>(Change.Type.MOVED, Collections.nCopies(secondPosition, item), Math.min(firstPosition, secondPosition)));
+            final TItem item = items.get(upPosition);
+            items.set(upPosition, items.get(downPosition));
+            items.set(downPosition, item);
+            notifyAboutChange(new Change<>(Change.Type.MOVED, Collections.nCopies(downPosition, item), upPosition));
         }
     }
 

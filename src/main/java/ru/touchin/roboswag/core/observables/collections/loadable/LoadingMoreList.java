@@ -328,6 +328,10 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         moreItemsCount.onNext(LoadedItems.UNKNOWN_ITEMS_COUNT);
     }
 
+    public void swap(final int firstPosition, final int secondPosition) {
+        innerList.swap(firstPosition, secondPosition);
+    }
+
     /**
      * Action to do with some items while new part of items have loaded.
      */
