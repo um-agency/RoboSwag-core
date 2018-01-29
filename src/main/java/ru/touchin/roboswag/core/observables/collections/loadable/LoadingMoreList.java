@@ -332,6 +332,10 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         innerList.swap(firstPosition, secondPosition);
     }
 
+    public void add(final int index, @NonNull final TItem item) {
+        innerList.add(index, item);
+    }
+
     /**
      * Action to do with some items while new part of items have loaded.
      */
