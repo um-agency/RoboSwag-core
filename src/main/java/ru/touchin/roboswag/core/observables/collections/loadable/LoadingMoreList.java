@@ -337,6 +337,28 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
     }
 
     /**
+     * Removing item by position.
+     *
+     * @param position Position to remove item from.
+     */
+    public void remove(final int position) {
+        remove(position, 1);
+    }
+
+    /**
+     * Removing items by position.
+     *
+     * @param position Position to remove items from;
+     * @param count    Count of items to remove.
+     */
+    public void remove(final int position, final int count) {
+        if (count == 0) {
+            return;
+        }
+        innerList.remove(position, count);
+    }
+
+    /**
      * Action to do with some items while new part of items have loaded.
      */
     public enum FilterAction {
