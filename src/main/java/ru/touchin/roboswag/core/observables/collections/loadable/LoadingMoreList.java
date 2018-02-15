@@ -358,7 +358,7 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         innerList.remove(position, count);
     }
 
-    public void update(int index, TItem item) {
+    public void update(final int index, @NonNull final TItem item) {
         if (index >= 0 && index < innerList.size()) {
             innerList.update(index, item);
         }
