@@ -358,8 +358,14 @@ public class LoadingMoreList<TItem, TMoreReference, TLoadedItems extends LoadedI
         innerList.remove(position, count);
     }
 
+    public void update(int index, TItem item) {
+        if (index >= 0 && index < innerList.size()) {
+            innerList.update(index, item);
+        }
+    }
+
     /**
-     * Action to do with some items while new part of items have loaded.
+     * Action to do with some items while new part of iems have loaded.
      */
     public enum FilterAction {
         DO_NOTHING,
