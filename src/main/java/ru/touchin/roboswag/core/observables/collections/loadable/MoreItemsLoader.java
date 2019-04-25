@@ -19,7 +19,7 @@
 
 package ru.touchin.roboswag.core.observables.collections.loadable;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import rx.Observable;
 

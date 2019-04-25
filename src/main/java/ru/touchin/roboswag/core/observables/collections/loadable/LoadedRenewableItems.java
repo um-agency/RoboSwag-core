@@ -19,7 +19,7 @@
 
 package ru.touchin.roboswag.core.observables.collections.loadable;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 /**
  * Created by Gavriil Sitnikov on 23/05/16.

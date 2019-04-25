@@ -19,7 +19,7 @@
 
 package ru.touchin.roboswag.core.observables.storable.concrete;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import ru.touchin.roboswag.core.observables.storable.Storable;
 import ru.touchin.roboswag.core.observables.storable.builders.NonNullStorableBuilder;

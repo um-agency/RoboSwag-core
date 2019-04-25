@@ -19,7 +19,7 @@
 
 package ru.touchin.roboswag.core.utils;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import rx.functions.Func0;
 
